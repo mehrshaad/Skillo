@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Skillo</title>
+    <style>
+      :root {
+        --paper: #faf9f6;
+        --sunk: #efece5;
+        --ink: #101014;
+        --muted: #6b6760;
+        --rule: #ddd8ce;
+        --proof: #22688a;
+        --mono: 'Cascadia Code', ui-monospace, Consolas, monospace;
+      }
+      body {
+        margin: 0 auto;
+        max-width: 42rem;
+        padding: 4rem 1.5rem;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.6 'Segoe UI', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      h1 { font-family: var(--mono); font-size: 2rem; margin: 0 0 .5rem; }
+      .tag { color: var(--muted); margin: 0 0 2rem; }
+      .note { border-left: 4px solid var(--proof); background: var(--sunk);
+              padding: 1rem 1.25rem; border-radius: 4px; }
+      a { color: var(--proof); }
+      ul { padding-left: 1.2rem; }
+      li { margin: .4rem 0; }
+      footer { margin-top: 3rem; border-top: 1px solid var(--rule); padding-top: 1rem;
+               color: var(--muted); font-size: .85rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Skillo</h1>
+    <p class="tag">
+      A Chrome side panel that tailors your Overleaf LaTeX resume to a specific job posting,
+      using your own AI provider.
+    </p>
+
+    <p class="note">
+      Skillo may reorder, rephrase, condense and cut. It is instructed never to invent an
+      employer, a date, a degree, a certification or a metric that is not already in your
+      resume. You review a diff before anything is written back.
+    </p>
+
+    <ul>
+      <li><a href="https://github.com/mehrshaad/Skillo">Source code and setup</a></li>
+      <li><a href="privacy.html">Privacy policy</a></li>
+      <li><a href="https://github.com/mehrshaad/Skillo/issues">Report an issue</a></li>
+    </ul>
+
+    <footer>MIT licensed. No servers, no analytics, no tracking.</footer>
+  </body>
+</html>

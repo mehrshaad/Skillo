@@ -86,6 +86,8 @@ undoes it completely**. Recompile there to check the PDF.
 Every run is kept under **history** in the panel header — the job, the diff and
 the LaTeX, for the last 20 runs.
 
+Privacy policy: <https://ali-dadashzadeh.ir/Skillo/privacy.html>
+
 ## Where your data goes
 
 - **API keys** live in Chrome's local extension storage on this machine, in

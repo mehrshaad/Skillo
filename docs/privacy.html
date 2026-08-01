@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Skillo - Privacy Policy</title>
+    <style>
+      :root {
+        --paper: #faf9f6;
+        --sunk: #efece5;
+        --ink: #101014;
+        --muted: #6b6760;
+        --rule: #ddd8ce;
+        --proof: #22688a;
+        --mono: 'Cascadia Code', ui-monospace, Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0 auto;
+        max-width: 46rem;
+        padding: 3rem 1.5rem 6rem;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.6 'Segoe UI', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      h1, h2 { font-family: var(--mono); line-height: 1.25; }
+      h1 { font-size: 1.75rem; margin: 0 0 .25rem; }
+      h2 { font-size: 1.05rem; margin: 2.5rem 0 .5rem; }
+      .updated { color: var(--muted); font-family: var(--mono); font-size: .8rem; margin: 0 0 2rem; }
+      .lede { font-size: 1.05rem; border-left: 4px solid var(--proof); background: var(--sunk);
+              padding: 1rem 1.25rem; border-radius: 4px; }
+      table { border-collapse: collapse; width: 100%; margin: .5rem 0 1rem; font-size: .92rem; }
+      th, td { border-bottom: 1px solid var(--rule); padding: .5rem .6rem; text-align: left; vertical-align: top; }
+      th { font-family: var(--mono); font-size: .78rem; text-transform: uppercase;
+           letter-spacing: .08em; color: var(--muted); }
+      code { font-family: var(--mono); font-size: .88em; background: var(--sunk);
+             padding: .1em .35em; border-radius: 3px; }
+      a { color: var(--proof); }
+      ul { padding-left: 1.2rem; }
+      li { margin: .3rem 0; }
+      footer { margin-top: 3rem; border-top: 1px solid var(--rule); padding-top: 1rem;
+               color: var(--muted); font-size: .85rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Skillo - Privacy Policy</h1>
+    <p class="updated">Last updated 1 August 2026</p>
+
+    <p class="lede">
+      Skillo has no servers. It collects nothing, transmits nothing to its developer, and
+      contains no analytics or tracking of any kind. Everything it stores stays in your own
+      browser, and the only place your data is ever sent is the AI provider you choose and
+      configure yourself.
+    </p>
+
+    <h2>What Skillo stores, and where</h2>
+    <table>
+      <tr>
+        <th>Data</th><th>Where it is kept</th><th>Leaves your machine?</th>
+      </tr>
+      <tr>
+        <td>API keys for OpenRouter, OpenAI or Anthropic</td>
+        <td><code>chrome.storage.local</code> — this device only</td>
+        <td>Only to the provider that key belongs to, when you generate. Never synced.</td>
+      </tr>
+      <tr>
+        <td>Your preferences: which provider and model, how much to change, page limit, fill toggle, panel layout</td>
+        <td><code>chrome.storage.sync</code></td>
+        <td>Yes — through Chrome's own sync to your Google account, so your settings follow you between machines. No keys or documents are included.</td>
+      </tr>
+      <tr>
+        <td>The job posting you paste or open</td>
+        <td><code>chrome.storage.session</code> while you work, and in local history afterwards</td>
+        <td>Sent to your chosen AI provider when you analyse or generate.</td>
+      </tr>
+      <tr>
+        <td>Your resume (LaTeX)</td>
+        <td>Read from your open Overleaf tab, or pasted or uploaded by you. Kept in local history.</td>
+        <td>Sent to your chosen AI provider when you generate.</td>
+      </tr>
+      <tr>
+        <td>History of your last 20 runs, including the original and revised resume</td>
+        <td><code>chrome.storage.local</code> — this device only</td>
+        <td>No. Never synced, never uploaded. You can clear it at any time from the History screen.</td>
+      </tr>
+    </table>
+
+    <h2>Who your data is sent to</h2>
+    <p>Only the parties you choose to involve:</p>
+    <ul>
+      <li>
+        <strong>Your AI provider.</strong> When you press Analyse or Generate, the job text
+        and your resume are sent to whichever provider you configured — OpenRouter, OpenAI or
+        Anthropic — under your own API key and their privacy policy. Skillo has no account
+        with them and never sees the traffic.
+      </li>
+      <li>
+        <strong>Claude Code, if you choose it.</strong> With the optional local bridge, prompts
+        go to the Claude Code already installed on your computer instead of a third party.
+      </li>
+      <li>
+        <strong>LinkedIn.</strong> Skillo fetches the job posting you asked for, one at a time,
+        the same way opening the page yourself would. It does not crawl, and does not collect
+        postings in bulk.
+      </li>
+      <li>
+        <strong>Overleaf.</strong> Skillo reads the document open in your Overleaf tab, and
+        writes the revision back only when you press Apply.
+      </li>
+      <li>
+        <strong>Google.</strong> Only the preferences listed above, via Chrome's built-in sync.
+        This is the same mechanism Chrome uses for your bookmarks.
+      </li>
+    </ul>
+
+    <h2>What Skillo never does</h2>
+    <ul>
+      <li>No analytics, telemetry, crash reporting or usage tracking.</li>
+      <li>No advertising, and no selling or sharing of data with anyone.</li>
+      <li>No Skillo-operated server. There is nowhere for your data to be sent to us.</li>
+      <li>No syncing of API keys or resume content.</li>
+      <li>No reading of pages other than LinkedIn job postings and Overleaf projects.</li>
+    </ul>
+
+    <h2>Permissions, and why each exists</h2>
+    <table>
+      <tr><th>Permission</th><th>Why</th></tr>
+      <tr><td><code>storage</code></td><td>Keep your settings, keys and history</td></tr>
+      <tr><td><code>sidePanel</code></td><td>The Skillo interface itself</td></tr>
+      <tr><td><code>tabs</code></td><td>Find your open Overleaf and LinkedIn tabs</td></tr>
+      <tr><td><code>scripting</code></td><td>Read an Overleaf tab that was open before Skillo was installed</td></tr>
+      <tr><td><code>offscreen</code></td><td>Parse fetched job pages (Chrome's background worker cannot)</td></tr>
+      <tr><td><code>nativeMessaging</code> (optional)</td><td>Requested only if you choose the local Claude Code bridge</td></tr>
+      <tr><td><code>*.linkedin.com</code></td><td>Read the job posting you asked for</td></tr>
+      <tr><td><code>www.overleaf.com</code></td><td>Read and write your resume document</td></tr>
+      <tr><td><code>openrouter.ai</code>, <code>api.openai.com</code>, <code>api.anthropic.com</code></td><td>Send requests to the provider you configured</td></tr>
+    </table>
+
+    <h2>Retention and deletion</h2>
+    <p>
+      Nothing expires on a schedule because nothing leaves your machine. History keeps the
+      last 20 runs and drops the oldest beyond that; <strong>Clear history</strong> removes it
+      immediately. Removing the extension deletes everything it stored locally. To remove
+      synced preferences, clear them in Skillo's settings or reset Chrome sync from your
+      Google account. Data already sent to an AI provider is governed by that provider's own
+      retention policy.
+    </p>
+
+    <h2>Children</h2>
+    <p>Skillo is a tool for job seekers and is not directed at children under 13.</p>
+
+    <h2>Changes</h2>
+    <p>
+      If this policy changes, the date at the top changes with it, and the history of every
+      revision is public in the repository.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+      Questions or concerns: open an issue at
+      <a href="https://github.com/mehrshaad/Skillo/issues">github.com/mehrshaad/Skillo/issues</a>.
+    </p>
+
+    <footer>
+      Skillo is open source. If anything here does not match what the code does, the code is
+      the bug — please report it.
+      <a href="https://github.com/mehrshaad/Skillo">Read the source</a>.
+    </footer>
+  </body>
+</html>
