@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ErrorCode } from '@/lib/errors';
 import { buildDiff, diffStats } from '@/lib/diff';
-import { computePageBudget } from '@/lib/pipeline/pageBudget';
+import { bodyChars, computePageBudget } from '@/lib/pipeline/pageBudget';
 import { regenerateResume, tailorResume } from '@/lib/pipeline/tailorResume';
 import type { JobProfile } from '@/lib/pipeline/types';
 import type { LLMProvider } from '@/lib/providers/types';
@@ -51,7 +51,13 @@ const input = (provider: LLMProvider) => ({
   notes: '',
   latex: ORIGINAL,
   fitLevel: 3,
-  budget: computePageBudget(ORIGINAL, 1, false, 1),
+  // Room for the fixture to grow slightly without tripping the page checks, so
+  // these tests measure the retry behaviour rather than the budget.
+  budget: computePageBudget(1, false, {
+    lower: Math.round(bodyChars(REVISED) * 1.2),
+    upper: null,
+    samples: 1,
+  }),
 });
 
 describe('tailorResume', () => {

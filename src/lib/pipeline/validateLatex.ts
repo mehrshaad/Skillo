@@ -1,5 +1,5 @@
-import { stripLatexComments } from '@/lib/latexText';
-import { bodyChars, type PageBudget } from './pageBudget';
+import { bodyChars, stripLatexComments } from '@/lib/latexText';
+import type { PageBudget } from './pageBudget';
 
 export interface LatexValidation {
   /** Hard failures — worth spending a retry on. */
@@ -12,13 +12,19 @@ export interface LatexValidation {
 const MAX_LENGTH_DRIFT = 0.4;
 
 /**
- * Page tolerances. A budget calibrated from this resume's real compiled page
- * count can be held to fairly tight bounds; an estimated one cannot, so it is
- * checked only for gross failures. Guessing loosely beats failing a good
- * revision because a constant was wrong.
+ * Page tolerances.
+ *
+ * A calibrated budget is built from the *lower* bound of what a page of this
+ * template holds, so exceeding it means exceeding the page limit. No grace is
+ * given: the user asked for a limit, and a limit that is sometimes exceeded is
+ * not a limit.
+ *
+ * An estimated budget rests on a constant that may be wrong for this template,
+ * so it is checked only for gross failures — failing a good revision because a
+ * guess was off is the worse outcome.
  */
 const PAGE_TOLERANCE = {
-  calibrated: { over: 1.15, underWhenFilling: 0.85, gutted: 0.5 },
+  calibrated: { over: 1.0, underWhenFilling: 0.85, gutted: 0.5 },
   estimated: { over: 1.45, underWhenFilling: 0.65, gutted: 0.4 },
 } as const;
 /** Templates do odd things with braces, so only a clear imbalance is a failure. */
@@ -101,8 +107,11 @@ function checkPageBudget(latex: string, budget: PageBudget): string[] {
   const pages = budget.pageLimit === 1 ? '1 page' : `${budget.pageLimit} pages`;
 
   if (body > budget.targetChars * tolerance.over) {
+    const evidence = budget.calibrated
+      ? ` Previous compiles of this template put ${budget.charsPerPage} characters on a page.`
+      : '';
     problems.push(
-      `At ${body} characters of content this will not fit ${pages} (budget ${budget.targetChars}). Cut the least job-relevant material.`,
+      `At ${body} characters of content this will not fit ${pages} (budget ${budget.targetChars}).${evidence} Cut the least job-relevant material.`,
     );
   }
 

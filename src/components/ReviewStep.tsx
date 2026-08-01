@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ErrorCode, type AppError } from '@/lib/errors';
 import { sendMessage } from '@/lib/messages';
 import type { WizardState } from '@/lib/state';
+import { projectedPages, type PageBudget } from '@/lib/pipeline/pageBudget';
 import { DiffView } from './DiffView';
 import { MatchScoreCard } from './MatchScoreCard';
 import { AtsScoreCard } from './AtsScoreCard';
@@ -55,7 +56,8 @@ function PageCheck({
       {!done && (
         <>
           <p className="text-xs text-muted">
-            Recompile in Overleaf, then check what actually came out.
+            Recompile in Overleaf, then check what actually came out. Each check teaches
+            Skillo how much this template fits on a page, so the next estimate is better.
           </p>
           <Button variant="secondary" disabled={checking} onClick={() => void check()}>
             {checking ? <Spinner /> : null}
@@ -95,6 +97,32 @@ function PageCheck({
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * An estimate, and labelled as one. It rests on how many characters previous
+ * compiles of this template fitted on a page, which is a good guide but cannot
+ * account for a revision that adds structure — the compiler is the only truth,
+ * and the page check below is where that arrives.
+ */
+function PageProjection({ latex, budget }: { latex: string; budget?: PageBudget }) {
+  if (!budget?.calibrated) return null;
+
+  const pages = projectedPages(latex, budget);
+  if (pages === null) return null;
+
+  const over = pages > budget.pageLimit;
+
+  return (
+    <p className={`font-mono text-[11px] ${over ? 'text-cut' : 'text-muted'}`}>
+      projected ≈ {pages.toFixed(1)} of {budget.pageLimit}{' '}
+      {budget.pageLimit === 1 ? 'page' : 'pages'}
+      <span className="text-muted">
+        {' '}
+        · estimated from {budget.samples} previous {budget.samples === 1 ? 'compile' : 'compiles'}
+      </span>
+    </p>
   );
 }
 
@@ -188,6 +216,8 @@ export function ReviewStep({ state }: { state: WizardState }) {
           {result.changeSummary}
         </div>
       </section>
+
+      <PageProjection latex={result.latex} budget={state.generation.budget} />
 
       <DiffView oldText={resume.latex} newText={result.latex} />
 

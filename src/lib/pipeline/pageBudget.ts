@@ -1,18 +1,19 @@
+import { bodyChars } from '@/lib/latexText';
+import type { DensityModel } from './density';
+
 /**
- * Skillo cannot compile LaTeX, so page count is approached in three layers:
- * a character budget steers the model, a validator rejects output that is
- * obviously the wrong size, and after applying we read the real page count out
- * of Overleaf's compiled PDF view.
+ * Turning "2 pages" into a character budget.
  *
- * This file is layer one: turning "2 pages" into a character budget.
+ * Skillo cannot compile LaTeX, and Overleaf will not report how full a page is
+ * (see docs/findings.md), so the budget is built from what compiled page counts
+ * have taught us about this template — see `density.ts`. Using the *lower*
+ * bound of a page's capacity means the budget cannot ask for more than fits.
  */
 
 /**
- * Used only when Overleaf has not told us the real page count. Measured against
- * a real two-page article-class resume: 7288 body characters over 2 pages, so
- * ~3644. Rounded down slightly because overshooting the budget is the more
- * annoying failure. Templates vary a lot, which is why an estimated budget is
- * validated far more loosely than a calibrated one.
+ * Used only before anything has been learned about a template. Measured against
+ * a real two-page article-class resume: 7288 body characters over 2 pages.
+ * Rounded down, because overshooting a page limit is the worse failure.
  */
 export const DEFAULT_CHARS_PER_PAGE = 3600;
 
@@ -21,37 +22,46 @@ export interface PageBudget {
   fillLastPage: boolean;
   charsPerPage: number;
   targetChars: number;
-  /** True when charsPerPage came from this resume's real page count. */
+  /** Where the page would actually spill, when the upper bound is known. */
+  ceilingChars: number | null;
+  /** True once real compiled page counts back the numbers. */
   calibrated: boolean;
+  /** How many compiles the model rests on. */
+  samples: number;
 }
 
-/** Characters between \begin{document} and \end{document}; the preamble does not print. */
-export function bodyChars(latex: string): number {
-  return documentBody(latex).length;
-}
-
-export function documentBody(latex: string): string {
-  const start = latex.indexOf('\\begin{document}');
-  const end = latex.lastIndexOf('\\end{document}');
-  if (start === -1 || end === -1 || end <= start) return latex;
-  return latex.slice(start + '\\begin{document}'.length, end);
-}
+export { bodyChars, documentBody } from '@/lib/latexText';
 
 export function computePageBudget(
-  originalLatex: string,
   pageLimit: number,
   fillLastPage: boolean,
-  knownPages: number | null,
+  model: DensityModel | null,
 ): PageBudget {
-  const body = bodyChars(originalLatex);
-  const calibrated = knownPages !== null && knownPages > 0 && body > 0;
-  const charsPerPage = calibrated ? Math.round(body / knownPages) : DEFAULT_CHARS_PER_PAGE;
+  if (!model) {
+    return {
+      pageLimit,
+      fillLastPage,
+      charsPerPage: DEFAULT_CHARS_PER_PAGE,
+      targetChars: DEFAULT_CHARS_PER_PAGE * pageLimit,
+      ceilingChars: null,
+      calibrated: false,
+      samples: 0,
+    };
+  }
 
   return {
     pageLimit,
     fillLastPage,
-    charsPerPage,
-    targetChars: charsPerPage * pageLimit,
-    calibrated,
+    charsPerPage: model.lower,
+    targetChars: model.lower * pageLimit,
+    ceilingChars: model.upper === null ? null : model.upper * pageLimit,
+    calibrated: true,
+    samples: model.samples,
   };
+}
+
+/** What we would tell the user the revision is likely to compile to. */
+export function projectedPages(latex: string, budget: PageBudget): number | null {
+  if (!budget.calibrated || budget.charsPerPage <= 0) return null;
+  return bodyChars(latex) / budget.charsPerPage;
 }

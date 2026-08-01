@@ -267,7 +267,7 @@ confirmed to carry no `key`, and to include the installers in both the unpacked 
 - [ ] **Record the assigned extension ID** in `scripts/build-bridge-installers.mjs`
       (`STORE_EXTENSION_ID`), then `npm run bridge` and re-upload — until then, store users
       must pass their ID to the installer by hand
-- [ ] Note in PLAN.md section 12 whether the store accepted a manifest containing `key`
+- [ ] Note in `docs/findings.md` whether the store accepted a manifest containing `key`
       (this build strips it either way)
 
 ---
@@ -298,3 +298,26 @@ re-pasting keys.
 - [ ] **Keys did not have to be re-pasted** after this update (the migration ran)
 - [ ] On a second machine signed into the same Google account: provider, model, fit level,
       page limit and fill toggle all arrive; the API key field is empty and asks once
+
+## W3 — Learned page budget
+
+Automated already: the bounds one compile proves, how they narrow as observations
+accumulate, the contradiction case (the safe bound survives, the aspirational one is
+dropped), per-template isolation, and that a revision one character over a learned budget is
+rejected while one exactly at it passes.
+
+**This is the fix for the 2-pages-became-2.2 bug — the check that matters.**
+
+- [ ] Load your resume from Overleaf with the PDF pane compiled and open. That silently
+      records one observation
+- [ ] Generate with the page limit at 2. The Review step shows `projected ≈ N of 2 pages`
+      with the number of compiles it is based on
+- [ ] Apply, recompile, and press **Check compiled page count**
+- [ ] **It must not exceed 2.** If it does, that is the bug still live — say so rather than
+      accepting it
+- [ ] Generate again. The projection should now be based on one more compile, and the
+      estimate should track the real outcome more closely
+- [ ] Try page limit 1 on the same resume → visibly shorter, and still within the limit
+      after compiling
+- [ ] On a template Skillo has never seen, the projection line is absent (nothing learned
+      yet) and the looser estimated tolerances apply

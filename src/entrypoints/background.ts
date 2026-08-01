@@ -13,6 +13,7 @@ import { buildProvider, getActiveProvider } from '@/lib/providers/registry';
 import { getBridgeStatus } from '@/lib/providers/claudeCode';
 import { addHistoryEntry, getSettings, saveSettings, updateHistoryEntry } from '@/lib/storage';
 import { computePageBudget } from '@/lib/pipeline/pageBudget';
+import { getDensityModel, recordObservation } from '@/lib/pipeline/density';
 import { analyzeJob } from '@/lib/pipeline/analyzeJob';
 import { regenerateResume, tailorResume } from '@/lib/pipeline/tailorResume';
 import { scoreMatch } from '@/lib/pipeline/scoreMatch';
@@ -81,6 +82,12 @@ const handlers: HandlerMap = {
 
   'overleaf/read': async (msg) => {
     const doc = await readOverleafDoc(msg.tabId);
+
+    // A document we can see, whose compiled page count we can also see, is a
+    // free lesson about how much this template fits on a page.
+    const { pages } = await readOverleafPageCount(msg.tabId);
+    if (pages !== null) await recordObservation(doc.latex, pages);
+
     await patchState({
       resume: {
         kind: 'overleaf',
@@ -113,7 +120,17 @@ const handlers: HandlerMap = {
     return { applied: true } as const;
   },
 
-  'overleaf/pageCount': async (msg) => readOverleafPageCount(msg.tabId),
+  'overleaf/pageCount': async (msg) => {
+    const result = await readOverleafPageCount(msg.tabId);
+
+    // The applied revision just compiled: that is the most informative
+    // observation there is, because it is the text we generated.
+    const state = await getState();
+    if (result.pages !== null && state.generation.result) {
+      await recordObservation(state.generation.result.latex, result.pages);
+    }
+    return result;
+  },
 
   'pipeline/tailor': async (msg) => runGeneration(msg.notes, null),
   'pipeline/regenerate': async (msg) => {
@@ -236,6 +253,11 @@ async function runGeneration(
   const runId = `run-${Date.now()}`;
   const startedAt = new Date().toISOString();
 
+  // Show the step that reports progress. Regenerating is triggered from the
+  // review screen, so without this the user watches a stale diff and cannot
+  // tell whether anything is happening.
+  await patchState({ step: 'tailor' });
+
   try {
     const { provider, model, meta } = await getActiveProvider();
 
@@ -249,19 +271,10 @@ async function runGeneration(
 
     await patchState({ notes, generation: { status: 'tailoring', runId, startedAt } });
 
-    // Calibrate the character budget against the real compiled page count when
-    // Overleaf can tell us; otherwise fall back to the measured constant.
-    const knownPages =
-      state.resume.kind === 'overleaf' && state.resume.tabId !== undefined
-        ? (await readOverleafPageCount(state.resume.tabId)).pages
-        : null;
-
-    const budget = computePageBudget(
-      state.resume.latex,
-      state.pageLimit,
-      state.fillLastPage,
-      knownPages,
-    );
+    // Budget from what compiled page counts have taught us about this template.
+    // Falls back to the constant until the first observation lands.
+    const densityModel = await getDensityModel(state.resume.latex);
+    const budget = computePageBudget(state.pageLimit, state.fillLastPage, densityModel);
 
     const input = {
       provider,
@@ -321,7 +334,7 @@ async function runGeneration(
       step: 'review',
       historyId,
       appliedAt: undefined,
-      generation: { status: 'done', runId, startedAt, result, match, ats },
+      generation: { status: 'done', runId, startedAt, result, match, ats, budget },
     });
   } catch (e) {
     const error = toAppError(e);

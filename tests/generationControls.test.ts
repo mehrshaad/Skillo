@@ -3,6 +3,8 @@ import {
   DEFAULT_CHARS_PER_PAGE,
   bodyChars,
   computePageBudget,
+  projectedPages,
+  type PageBudget,
 } from '@/lib/pipeline/pageBudget';
 import { buildTailorSystemPrompt } from '@/lib/pipeline/prompts';
 import { validateLatex } from '@/lib/pipeline/validateLatex';
@@ -21,12 +23,14 @@ const LEVEL_MARKERS = [
   'Maximum alignment',
 ];
 
-const budget = (over: Partial<ReturnType<typeof computePageBudget>> = {}) => ({
+const budget = (over: Partial<PageBudget> = {}): PageBudget => ({
   pageLimit: 2,
   fillLastPage: false,
   charsPerPage: 3600,
   targetChars: 7200,
+  ceilingChars: null,
   calibrated: true,
+  samples: 3,
   ...over,
 });
 
@@ -93,26 +97,30 @@ describe('page budget', () => {
     expect(bodyChars('no document here')).toBe('no document here'.length);
   });
 
-  it('calibrates against the real page count when Overleaf reports one', () => {
-    const result = computePageBudget(latex, 2, false, 2);
+  it('builds the budget from what the template has been shown to hold', () => {
+    const result = computePageBudget(2, false, { lower: 3644, upper: 4000, samples: 3 });
     expect(result.calibrated).toBe(true);
-    expect(result.charsPerPage).toBe(500);
-    expect(result.targetChars).toBe(1000);
+    expect(result.charsPerPage).toBe(3644);
+    expect(result.targetChars).toBe(7288);
+    expect(result.ceilingChars).toBe(8000);
   });
 
-  it('estimates when the page count is unknown', () => {
-    const result = computePageBudget(latex, 2, false, null);
+  it('estimates until something has been learned', () => {
+    const result = computePageBudget(2, false, null);
     expect(result.calibrated).toBe(false);
     expect(result.charsPerPage).toBe(DEFAULT_CHARS_PER_PAGE);
     expect(result.targetChars).toBe(DEFAULT_CHARS_PER_PAGE * 2);
-  });
-
-  it('does not calibrate off a zero page count', () => {
-    expect(computePageBudget(latex, 1, false, 0).calibrated).toBe(false);
+    expect(result.samples).toBe(0);
   });
 
   it('carries the fill flag through', () => {
-    expect(computePageBudget(latex, 1, true, 1).fillLastPage).toBe(true);
+    expect(computePageBudget(1, true, null).fillLastPage).toBe(true);
+  });
+
+  it('projects pages only from a calibrated budget', () => {
+    const calibrated = computePageBudget(2, false, { lower: 500, upper: null, samples: 1 });
+    expect(projectedPages(latex, calibrated)).toBe(2);
+    expect(projectedPages(latex, computePageBudget(2, false, null))).toBeNull();
   });
 });
 

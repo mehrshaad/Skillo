@@ -26,8 +26,8 @@ const HOST_NAME = 'com.skillo.bridge';
 /**
  * Every extension id the host will talk to. The unpacked build is pinned by the
  * `key` in wxt.config.ts; the store build gets its id from Chrome, which is
- * only known after the first upload — fill STORE_EXTENSION_ID in then (see
- * PLAN.md section 12) and regenerate.
+ * only known after the first upload — fill STORE_EXTENSION_ID in then and
+ * regenerate (see docs/findings.md).
  */
 const DEV_EXTENSION_ID = 'hfbincjmdcgfhffnpanjdfcccpejdkei';
 const STORE_EXTENSION_ID = '';

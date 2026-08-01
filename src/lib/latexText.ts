@@ -5,6 +5,19 @@
  * keeps text or removes markup — none of them rewrite words.
  */
 
+/** The part of the file that prints; the preamble never reaches the page. */
+export function documentBody(latex: string): string {
+  const start = latex.indexOf('\\begin{document}');
+  const end = latex.lastIndexOf('\\end{document}');
+  if (start === -1 || end === -1 || end <= start) return latex;
+  return latex.slice(start + '\\begin{document}'.length, end);
+}
+
+/** How much printable content the document carries. */
+export function bodyChars(latex: string): number {
+  return documentBody(latex).length;
+}
+
 /** Removes `%` comments, honouring the `\%` escape. */
 export function stripLatexComments(latex: string): string {
   return latex

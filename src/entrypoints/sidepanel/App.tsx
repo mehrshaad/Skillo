@@ -146,7 +146,6 @@ export default function App() {
           start over
         </button>
         <Button
-          variant="secondary"
           disabled={!next || !isReachable(next.id, state)}
           onClick={() => next && goTo(next.id)}
         >

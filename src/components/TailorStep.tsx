@@ -70,7 +70,7 @@ export function TailorStep({ state }: { state: WizardState }) {
           disabled={running}
           onChange={(v) => patch({ fillLastPage: v })}
           label="Fill the last page"
-          description="Expand or trim so the last page ends full, rather than half empty."
+          description="Asks for a full last page rather than a half-empty one. Skillo can verify the page count after applying, but not how full the last page ended up — check that yourself."
         />
       </section>
 

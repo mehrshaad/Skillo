@@ -3,6 +3,7 @@ import type { AppError } from './errors';
 import type { JobPosting } from './jobIntake/types';
 import type { JobProfile, MatchScore, TailorResult } from './pipeline/types';
 import type { AtsResult } from './pipeline/atsScore';
+import type { PageBudget } from './pipeline/pageBudget';
 
 export type WizardStep = 'job' | 'resume' | 'tailor' | 'review';
 
@@ -47,6 +48,8 @@ export interface GenerationState {
   match?: MatchScore;
   /** Keyword coverage before and after, computed locally. */
   ats?: { before: AtsResult; after: AtsResult };
+  /** The budget this run was generated against, for the projection in review. */
+  budget?: PageBudget;
 }
 
 /** 1 = change as little as possible, 5 = rewrite hard for this job. */

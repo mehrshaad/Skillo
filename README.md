@@ -128,8 +128,10 @@ npm run icons      # regenerate the icons
 ```
 
 `docs/manual-e2e.md` lists the checks that need a real browser, real accounts or
-real keys, per milestone. `PLAN.md` records the design, every decision made
-along the way, and the findings that changed those decisions during the build.
+real keys. `docs/findings.md` records what probing LinkedIn, Overleaf, Chrome
+and the Claude CLI actually established — including the assumptions that turned
+out to be wrong, and what the code does instead. Read it before changing
+anything that touches those systems.
 
 Layout worth knowing:
 
