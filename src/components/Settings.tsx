@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { browser } from 'wxt/browser';
-import type { AppError } from '@/lib/errors';
+import { ErrorCode, appError, type AppError } from '@/lib/errors';
 import { sendMessage } from '@/lib/messages';
 import type { BridgeStatus } from '@/lib/providers/claudeCode';
 import { PROVIDER_META } from '@/lib/providers/registry';
@@ -118,10 +118,13 @@ function ClaudeCodeForm({
     const granted = await browser.permissions.request({ permissions: ['nativeMessaging'] });
     setBusy(false);
     if (!granted) {
-      setError({
-        code: 'PERMISSION_DENIED',
-        message: 'Skillo needs the native messaging permission to talk to Claude Code.',
-      } as AppError);
+      setError(
+        appError(
+          ErrorCode.PERMISSION_DENIED,
+          'Skillo needs Chrome\'s native messaging permission to reach Claude Code.',
+          'Press Connect again to see the prompt, or use an API key provider instead.',
+        ),
+      );
       return;
     }
     await refresh();

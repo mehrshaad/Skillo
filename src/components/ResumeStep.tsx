@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { AppError } from '@/lib/errors';
+import { ErrorCode, appError, type AppError } from '@/lib/errors';
 import { hashText } from '@/lib/hash';
 import { sendMessage, type OverleafTabInfo } from '@/lib/messages';
 import { LARGE_RESUME_CHARS, findIncludedFiles, looksLikeLatex } from '@/lib/resumeInput';
@@ -146,11 +146,13 @@ export function ResumeStep({ resume }: { resume?: ResumeSource }) {
               if (!file) return;
               const text = await file.text();
               if (!looksLikeLatex(text)) {
-                setError({
-                  code: 'INTERNAL',
-                  message: 'That file does not look like a LaTeX document.',
-                  detail: 'It has no \\documentclass or \\begin{document}.',
-                } as AppError);
+                setError(
+                  appError(
+                    ErrorCode.INVALID_RESUME_FILE,
+                    'That file does not look like a LaTeX document.',
+                    'It contains no \\documentclass or \\begin{document}. Pick your resume\'s .tex file.',
+                  ),
+                );
                 return;
               }
               await useLatex(text, 'upload', file.name);

@@ -11,6 +11,7 @@
     "compile": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "icons": "node scripts/generate-icons.mjs",
     "postinstall": "wxt prepare"
   },
   "dependencies": {

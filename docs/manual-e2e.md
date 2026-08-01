@@ -148,4 +148,10 @@ two framed messages in one write are both handled. What remains needs Chrome its
 
 ## M6 — Polish and docs
 
-*(to be filled in when the milestone lands)*
+- [ ] The toolbar icon shows the Skillo check mark, not Chrome's default puzzle piece
+- [ ] Fresh-profile walkthrough: in a brand-new Chrome profile, follow only `README.md`
+      from a clean checkout and get all the way to an applied resume without needing
+      anything that is not written down
+- [ ] Every error you can provoke names what to do next, not just what failed
+- [ ] Keyboard only: tab through the panel — focus is always visible, and every step can
+      be completed without a mouse

@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Shell scripts must keep LF endings or they will not run on macOS or Linux.
+*.sh text eol=lf
+
+# The bridge host is executed directly via its shebang on macOS and Linux.
+bridge/host.mjs text eol=lf

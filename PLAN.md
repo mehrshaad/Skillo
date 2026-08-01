@@ -514,6 +514,31 @@ there is no `@types/chrome` and the global `chrome` namespace is not typed. The 
 plugin is at `wxt/testing/vitest-plugin`. `@wxt-dev/module-react` configures Vite but not
 `tsconfig`, so `jsx` is set in the root tsconfig.
 
+**F5a — `temperature` must never be sent (contradicts §8.1's defaults).** Current
+Anthropic models reject `temperature`, `top_p` and `top_k` with a 400, and the user can
+point any provider at any model — including Anthropic models through OpenRouter. The
+parameter was removed from `CompletionRequest` entirely rather than made conditional;
+model defaults are fine for both stages. Asserted in the provider tests.
+
+**F5b — Claude CLI contract, verified against v2.1.220 (fills in §9.1's "verify at
+implementation time").** The working invocation is
+`claude -p --tools "" --output-format json --system-prompt <text>` with the prompt on
+stdin. `--tools ""` disables every tool, which is exactly the no-file-access sandbox the
+plan wanted. The reply text is `result` in the JSON, with `is_error` alongside. On Windows
+the binary is `claude.exe` in `%USERPROFILE%\.local\bin`. Chrome cannot execute a `.mjs`
+directly on Windows, so the installer writes a `.bat` launcher with the resolved Node path
+baked in and points the host manifest at that. Verified end to end by driving the
+installed launcher with real native-messaging framing: ping, completion, unknown-type
+rejection, and two framed messages in a single write.
+
+**F5c — WXT `publicDir` resolves from the project root, not `srcDir`.** Icons in
+`src/public/icon/` are silently ignored — no error, just no `icons` key in the manifest.
+They belong in `public/icon/` even when `srcDir: 'src'`.
+
+**F5d — `.gitattributes` needs explicit LF for shell files.** With `* text=auto` on
+Windows, `install.sh` and `bridge/host.mjs` would be checked out with CRLF and fail at the
+shebang on macOS and Linux.
+
 **F5 — Design direction.** The panel is styled as a workbench, not an app: warm paper,
 hairline rules, and monospace as the *display* face (headings, labels, job titles) since
 the artifact is LaTeX source. Proofreader's blue marks anything Skillo touched. Tokens

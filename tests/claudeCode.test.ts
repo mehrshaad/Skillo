@@ -25,6 +25,13 @@ function stubPort() {
   };
 }
 
+/** `permissions.contains` is overloaded with a callback form, hence the cast. */
+function stubPermission(granted: boolean) {
+  vi.spyOn(fakeBrowser.permissions, 'contains').mockImplementation(
+    (async () => granted) as never,
+  );
+}
+
 function installPort() {
   const stub = stubPort();
   const runtime = fakeBrowser.runtime as unknown as Record<string, unknown>;
@@ -127,12 +134,12 @@ describe('Claude Code provider', () => {
 
 describe('getBridgeStatus', () => {
   it('reports not installed when the permission has not been granted', async () => {
-    vi.spyOn(fakeBrowser.permissions, 'contains').mockResolvedValue(false);
+    stubPermission(false);
     expect(await getBridgeStatus()).toEqual({ installed: false });
   });
 
   it('reports the host version and whether claude was found', async () => {
-    vi.spyOn(fakeBrowser.permissions, 'contains').mockResolvedValue(true);
+    stubPermission(true);
     const stub = installPort();
 
     const pending = getBridgeStatus();
@@ -150,7 +157,7 @@ describe('getBridgeStatus', () => {
   });
 
   it('reports not installed when the host cannot be reached', async () => {
-    vi.spyOn(fakeBrowser.permissions, 'contains').mockResolvedValue(true);
+    stubPermission(true);
     const stub = installPort();
 
     const pending = getBridgeStatus();

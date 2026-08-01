@@ -18,6 +18,7 @@ export function extractFromLivePage(doc: Document): ParsedJob {
     throw appError(
       ErrorCode.LINKEDIN_LOGIN_WALL,
       'LinkedIn is asking for a sign-in before showing this posting.',
+      'Sign in on that tab and try again, or copy the description and paste it in instead.',
     );
   }
 
