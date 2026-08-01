@@ -155,3 +155,22 @@ two framed messages in one write are both handled. What remains needs Chrome its
 - [ ] Every error you can provoke names what to do next, not just what failed
 - [ ] Keyboard only: tab through the panel — focus is always visible, and every step can
       be completed without a mouse
+
+---
+
+# v2
+
+## V1 — Cosmetics
+
+Automated already: name string in the built manifest, and the 16px icon decoded to
+confirm the two bars are separated by a clear 2px band.
+
+- [ ] `chrome://extensions` shows the name as **Skillo - Resume Tailor** with a plain
+      hyphen
+- [ ] The toolbar icon is the new two-bar mark and is legible in the toolbar at its real
+      size
+- [ ] Every screen still reads well at the panel's narrowest (drag the side panel edge in
+      as far as Chrome allows, around 360px): nothing clips, wraps badly, or overflows
+      horizontally — check job card, settings, resume list, diff, history
+- [ ] The bolder pass reads as intentional rather than heavy — headings and buttons carry
+      weight, body text is still comfortable to read

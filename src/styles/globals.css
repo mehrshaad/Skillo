@@ -9,20 +9,20 @@
  */
 @theme {
   --color-paper: #faf9f6;
-  --color-paper-sunk: #f2f0ea;
-  --color-ink: #17161a;
-  --color-muted: #77736b;
-  --color-rule: #e4e0d8;
+  --color-paper-sunk: #efece5;
+  --color-ink: #101014;
+  --color-muted: #6b6760;
+  --color-rule: #ddd8ce;
 
-  --color-proof: #2b7c9e;
-  --color-proof-wash: #ddeef6;
+  --color-proof: #22688a;
+  --color-proof-wash: #d7ebf5;
 
-  --color-add: #1f7a4d;
-  --color-add-wash: #e8f5ee;
-  --color-cut: #a3342f;
-  --color-cut-wash: #fbeae8;
-  --color-warn: #8a5a10;
-  --color-warn-wash: #fbf1de;
+  --color-add: #17703f;
+  --color-add-wash: #e2f2ea;
+  --color-cut: #9c2b25;
+  --color-cut-wash: #fbe5e3;
+  --color-warn: #7d5009;
+  --color-warn-wash: #faedd6;
 
   --font-sans: 'Segoe UI Variable Text', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Cascadia Code', 'Cascadia Mono', ui-monospace, Consolas, monospace;
@@ -39,14 +39,14 @@ body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 13.5px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
 /* One visible focus treatment everywhere, including keyboard-only navigation. */
 :focus-visible {
-  outline: 2px solid var(--color-proof);
+  outline: 2.5px solid var(--color-proof);
   outline-offset: 2px;
 }
 

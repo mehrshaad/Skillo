@@ -14,7 +14,7 @@ export default defineConfig({
     plugins: [tailwindcss()],
   }),
   manifest: {
-    name: 'Skillo — Resume Tailor',
+    name: 'Skillo - Resume Tailor',
     description:
       'Tailor your Overleaf LaTeX resume to a job posting using your own LLM API key or local Claude Code.',
     key: DEV_PUBLIC_KEY,

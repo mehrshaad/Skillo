@@ -156,7 +156,7 @@ function JobCard({ job }: { job: JobPosting }) {
     <div className="space-y-3">
       <section className="space-y-1.5">
         <Eyebrow>Job</Eyebrow>
-        <h2 className="font-mono text-sm leading-snug text-ink">
+        <h2 className="font-mono text-[15px] font-semibold leading-snug text-ink">
           {job.title || 'Untitled posting'}
         </h2>
         <p className="text-xs text-muted">

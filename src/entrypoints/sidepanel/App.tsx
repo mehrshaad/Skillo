@@ -77,7 +77,7 @@ export default function App() {
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-baseline justify-between border-b border-rule px-4 py-3">
-        <h1 className="font-mono text-sm tracking-tight">skillo</h1>
+        <h1 className="font-mono text-[15px] font-bold tracking-tight">skillo</h1>
         <div className="flex gap-3">
           <button
             onClick={() => setOverlay('history')}
@@ -104,11 +104,11 @@ export default function App() {
               disabled={!reachable}
               onClick={() => goTo(step.id)}
               aria-current={active ? 'step' : undefined}
-              className={`flex-1 border-t-2 px-2 py-2 text-left font-mono text-[10px] ${
+              className={`flex-1 border-t-[3px] px-2 py-2 text-left font-mono text-[10px] ${
                 active
-                  ? 'border-proof text-ink'
+                  ? 'border-proof font-bold text-ink'
                   : reachable
-                    ? 'border-proof/30 text-proof'
+                    ? 'border-proof/40 font-medium text-proof'
                     : 'border-transparent text-muted/50'
               }`}
             >
@@ -161,7 +161,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-full flex-col">
       <header className="border-b border-rule px-4 py-3">
-        <h1 className="font-mono text-sm tracking-tight">skillo</h1>
+        <h1 className="font-mono text-[15px] font-bold tracking-tight">skillo</h1>
       </header>
       <main className="flex-1 overflow-y-auto px-4 py-4">{children}</main>
     </div>

@@ -174,7 +174,7 @@ function ResumeCard({ resume }: { resume: ResumeSource }) {
     <div className="space-y-3">
       <section className="space-y-1.5">
         <Eyebrow>Resume</Eyebrow>
-        <p className="font-mono text-sm">{resume.filename ?? 'untitled.tex'}</p>
+        <p className="font-mono text-[15px] font-semibold">{resume.filename ?? 'untitled.tex'}</p>
         <div className="flex flex-wrap gap-1">
           <Chip>{resume.latex.length.toLocaleString()} chars</Chip>
           <Chip>{lines.toLocaleString()} lines</Chip>

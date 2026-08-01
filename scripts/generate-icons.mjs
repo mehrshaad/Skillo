@@ -1,9 +1,11 @@
 /**
  * Generates the extension icons.
  *
- * The mark is a proofreader's check in Skillo's proof blue on ink — the same
- * idea the diff view uses to show what was touched. Written by hand rather than
- * pulled from a design tool so the icons can be regenerated from source.
+ * The mark is two stacked bars on an ink plate: a short muted one above a
+ * longer, heavier one in Skillo's proof blue — a resume line, strengthened.
+ * Two solid shapes survive 16px far better than a thin check does. Written by
+ * hand rather than pulled from a design tool so the icons regenerate from
+ * source.
  *
  *   node scripts/generate-icons.mjs
  */
@@ -17,8 +19,17 @@ import { fileURLToPath } from 'node:url';
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icon');
 const SIZES = [16, 32, 48, 128];
 
-const INK = [0x17, 0x16, 0x1a];
-const PROOF = [0x4d, 0xa6, 0xcc];
+const INK = [0x10, 0x10, 0x14];
+const PROOF = [0x5a, 0xb4, 0xdc];
+const PAPER = [0xe8, 0xe4, 0xdb];
+
+/** Each bar: y centre, half-length either side of centre, half-thickness. */
+// Spacing is chosen so the gap survives 16px as a clear 2px band; verified by
+// decoding the generated PNG, not by eye.
+const BARS = [
+  { y: 0.35, halfLength: 0.2, halfThickness: 0.05, colour: PAPER },
+  { y: 0.625, halfLength: 0.31, halfThickness: 0.065, colour: PROOF },
+];
 
 /* ------------------------------------------------------------- PNG writing */
 
@@ -97,7 +108,6 @@ function render(size) {
   const pixels = Buffer.alloc(size * size * 4);
   // Antialias over roughly one pixel, expressed in normalized units.
   const feather = 1 / size;
-  const strokeHalfWidth = 0.075;
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -108,13 +118,20 @@ function render(size) {
       const plate = roundedSquare(px, py, 0.47, 0.12);
       const plateAlpha = clamp01(0.5 - plate / feather);
 
-      const check = Math.min(
-        distanceToSegment(px, py, 0.26, 0.52, 0.44, 0.70),
-        distanceToSegment(px, py, 0.44, 0.70, 0.76, 0.31),
-      );
-      const checkAlpha = clamp01(0.5 + (strokeHalfWidth - check) / feather);
+      // Paint the bars over the plate in order, so the lower one wins overlaps.
+      let colour = INK;
+      for (const bar of BARS) {
+        const distance = distanceToSegment(
+          px,
+          py,
+          0.5 - bar.halfLength,
+          bar.y,
+          0.5 + bar.halfLength,
+          bar.y,
+        );
+        colour = mix(colour, bar.colour, clamp01(0.5 + (bar.halfThickness - distance) / feather));
+      }
 
-      const colour = mix(INK, PROOF, checkAlpha);
       const offset = (y * size + x) * 4;
       pixels[offset] = colour[0];
       pixels[offset + 1] = colour[1];
