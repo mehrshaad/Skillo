@@ -8,3 +8,4 @@ stats.html
 # Scratch tooling for picking a design, kept locally but not part of the repo.
 icon-options/
 scripts/generate-icon-options.mjs
+icon20.png
