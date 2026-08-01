@@ -2,7 +2,7 @@ import { browser, type Browser } from 'wxt/browser';
 import { ErrorCode, toAppError, appError } from '@/lib/errors';
 import type { Message, MessageMap, MessageOf, MessageType, Result } from '@/lib/messages';
 import { ok, fail } from '@/lib/messages';
-import { getState, patchState, resetState } from '@/lib/state';
+import { INITIAL_STATE, getState, getStoredState, patchState, resetState, setState } from '@/lib/state';
 import {
   buildManualPosting,
   extractFromActiveTab,
@@ -11,7 +11,8 @@ import {
 import type { JobPosting } from '@/lib/jobIntake/types';
 import { buildProvider, getActiveProvider } from '@/lib/providers/registry';
 import { getBridgeStatus } from '@/lib/providers/claudeCode';
-import { addHistoryEntry, getSettings, updateHistoryEntry } from '@/lib/storage';
+import { addHistoryEntry, getSettings, saveSettings, updateHistoryEntry } from '@/lib/storage';
+import { computePageBudget } from '@/lib/pipeline/pageBudget';
 import { analyzeJob } from '@/lib/pipeline/analyzeJob';
 import { regenerateResume, tailorResume } from '@/lib/pipeline/tailorResume';
 import type { JobProfile, TailorResult } from '@/lib/pipeline/types';
@@ -31,9 +32,15 @@ type HandlerMap = { [K in MessageType]?: Handler<K> };
  * handlers here as features land.
  */
 const handlers: HandlerMap = {
-  'state/get': async () => getState(),
+  'state/get': async () => {
+    const stored = await getStoredState();
+    return stored ?? setState({ ...INITIAL_STATE, ...(await generationDefaults()) });
+  },
   'state/update': async (msg) => patchState(msg.patch),
-  'state/reset': async () => resetState(),
+  'state/reset': async () => {
+    await resetState();
+    return patchState(await generationDefaults());
+  },
 
   'job/fetch': async (msg) => acceptJob(await fetchJobFromUrl(msg.url)),
   'job/useActiveTab': async () => acceptJob(await extractFromActiveTab()),
@@ -102,6 +109,8 @@ const handlers: HandlerMap = {
     return { applied: true } as const;
   },
 
+  'overleaf/pageCount': async (msg) => readOverleafPageCount(msg.tabId),
+
   'pipeline/tailor': async (msg) => runGeneration(msg.notes, null),
   'pipeline/regenerate': async (msg) => {
     const state = await getState();
@@ -128,6 +137,16 @@ const handlers: HandlerMap = {
     }
   },
 };
+
+/** The generation controls a run starts with: whatever the last run used. */
+async function generationDefaults(): Promise<Partial<WizardState>> {
+  const { defaults } = await getSettings();
+  return {
+    fitLevel: defaults?.fitLevel ?? INITIAL_STATE.fitLevel,
+    pageLimit: defaults?.pageLimit ?? INITIAL_STATE.pageLimit,
+    fillLastPage: defaults?.fillLastPage ?? INITIAL_STATE.fillLastPage,
+  };
+}
 
 /**
  * A new job invalidates any analysis and generated revision made for the old one.
@@ -176,6 +195,15 @@ async function readOverleafDoc(tabId: number): Promise<OverleafDoc> {
   return second.data;
 }
 
+/**
+ * Never throws: an unreadable page count is a normal outcome (not compiled yet,
+ * PDF pane closed) and callers treat null as "estimate instead".
+ */
+async function readOverleafPageCount(tabId: number): Promise<{ pages: number | null }> {
+  const res = await sendToTab(tabId, { type: 'overleaf/csPageCount' });
+  return res.ok ? res.data : { pages: null };
+}
+
 interface RegenerationContext {
   previous: TailorResult;
   feedback: string;
@@ -217,10 +245,41 @@ async function runGeneration(
 
     await patchState({ notes, generation: { status: 'tailoring', runId, startedAt } });
 
-    const input = { provider, model, profile, notes, latex: state.resume.latex };
+    // Calibrate the character budget against the real compiled page count when
+    // Overleaf can tell us; otherwise fall back to the measured constant.
+    const knownPages =
+      state.resume.kind === 'overleaf' && state.resume.tabId !== undefined
+        ? (await readOverleafPageCount(state.resume.tabId)).pages
+        : null;
+
+    const budget = computePageBudget(
+      state.resume.latex,
+      state.pageLimit,
+      state.fillLastPage,
+      knownPages,
+    );
+
+    const input = {
+      provider,
+      model,
+      profile,
+      notes,
+      latex: state.resume.latex,
+      fitLevel: state.fitLevel,
+      budget,
+    };
     const result = regeneration
       ? await regenerateResume(input, asModelOutput(regeneration.previous), regeneration.feedback)
       : await tailorResume(input);
+
+    // Remember the controls so the next run starts where this one left off.
+    await saveSettings({
+      defaults: {
+        fitLevel: state.fitLevel,
+        pageLimit: state.pageLimit,
+        fillLastPage: state.fillLastPage,
+      },
+    });
 
     const historyId = crypto.randomUUID();
     await addHistoryEntry({
@@ -234,6 +293,8 @@ async function runGeneration(
       applied: false,
       providerId: meta.id,
       model,
+      fitLevel: state.fitLevel,
+      pageLimit: state.pageLimit,
     });
 
     return patchState({

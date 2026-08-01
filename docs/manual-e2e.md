@@ -174,3 +174,28 @@ confirm the two bars are separated by a clear 2px band.
       horizontally — check job card, settings, resume list, diff, history
 - [ ] The bolder pass reads as intentional rather than heavy — headings and buttons carry
       weight, body text is still comfortable to read
+
+## V2 — Fit level and page limit
+
+Automated already: prompt assembly (one level block each, no-fabrication rule byte-identical
+across all five, budget numbers in the text), budget maths including the fallback,
+validator thresholds for both calibrated and estimated budgets, and the page-count reader
+against PDF.js-shaped DOM including the virtualized and gutter-confusion cases.
+
+- [ ] Fit level and page controls appear on step 3, default to **medium** and **2 pages**
+- [ ] Arrow keys move both level bars while focused; the caption under the fit bar changes
+      with it
+- [ ] Generate at **lowest**, then regenerate the same job at **very high** — the two
+      diffs must differ in the described direction (lowest mostly reorders; very high
+      rewrites and cuts). This is the check that the level actually reaches the model
+- [ ] **At very high, re-read the diff for invented content.** Nothing may appear that is
+      not in the original or your notes. If it does, that is a bug, not a setting
+- [ ] Set the page limit to 1 on a 2-page resume → the revision is visibly shorter
+- [ ] Turn on **Fill the last page** → the result does not end with a mostly-empty page
+- [ ] Your chosen fit level and page limit are remembered on the next run
+- [ ] After Apply, press **Check compiled page count** — with the Overleaf PDF pane open
+      and compiled, it reports the real number
+- [ ] Force an overflow (set limit 1 on a long resume, apply, recompile) → it offers
+      **Regenerate shorter**, and the regeneration is actually shorter
+- [ ] Close the Overleaf PDF pane and check again → it says it could not read the count
+      rather than reporting a wrong one

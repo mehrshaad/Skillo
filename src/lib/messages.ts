@@ -33,6 +33,8 @@ export interface MessageMap {
     req: { tabId: number; content: string; expectedCurrentHash: string };
     res: { applied: true };
   };
+  /** null when the project has not been compiled or the PDF pane is closed. */
+  'overleaf/pageCount': { req: { tabId: number }; res: { pages: number | null } };
   'pipeline/analyze': { req: {}; res: WizardState };
   'pipeline/tailor': { req: { notes: string }; res: WizardState };
   'pipeline/regenerate': { req: { feedback: string }; res: WizardState };
@@ -53,6 +55,7 @@ export interface MessageMap {
     req: { content: string; expectedCurrentHash: string };
     res: { applied: true };
   };
+  'overleaf/csPageCount': { req: {}; res: { pages: number | null } };
 }
 
 export type MessageType = keyof MessageMap;

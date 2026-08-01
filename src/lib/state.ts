@@ -32,12 +32,19 @@ export interface GenerationState {
   result?: TailorResult;
 }
 
+/** 1 = change as little as possible, 5 = rewrite hard for this job. */
+export type FitLevel = 1 | 2 | 3 | 4 | 5;
+export type PageLimit = 1 | 2 | 3;
+
 export interface WizardState {
   step: WizardStep;
   job?: JobPosting;
   jobProfile?: JobProfile;
   resume?: ResumeSource;
   notes: string;
+  fitLevel: FitLevel;
+  pageLimit: PageLimit;
+  fillLastPage: boolean;
   generation: GenerationState;
   /** Set once the revision has been written into Overleaf. */
   appliedAt?: string;
@@ -48,6 +55,9 @@ export interface WizardState {
 export const INITIAL_STATE: WizardState = {
   step: 'job',
   notes: '',
+  fitLevel: 3,
+  pageLimit: 2,
+  fillLastPage: false,
   generation: { status: 'idle' },
 };
 
@@ -57,11 +67,15 @@ const STATE_KEY = 'wizard';
  * Wizard state lives in session storage: it must survive the panel being closed
  * and the MV3 service worker being evicted, but should not outlive the browser.
  */
-export async function getState(): Promise<WizardState> {
+/** null when nothing has been stored yet, so callers can seed first-run values. */
+export async function getStoredState(): Promise<WizardState | null> {
   const raw = await browser.storage.session.get(STATE_KEY);
   const stored = raw[STATE_KEY] as WizardState | undefined;
-  if (!stored) return INITIAL_STATE;
-  return { ...INITIAL_STATE, ...stored };
+  return stored ? { ...INITIAL_STATE, ...stored } : null;
+}
+
+export async function getState(): Promise<WizardState> {
+  return (await getStoredState()) ?? INITIAL_STATE;
 }
 
 export async function setState(next: WizardState): Promise<WizardState> {

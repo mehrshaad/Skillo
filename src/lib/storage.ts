@@ -2,14 +2,23 @@ import { browser } from 'wxt/browser';
 import type { ProviderId } from './providers/types';
 import type { JobPosting } from './jobIntake/types';
 import type { JobProfile } from './pipeline/types';
+import type { FitLevel, PageLimit } from './state';
 
 export interface ProviderConfig {
   apiKey: string;
   model: string;
 }
 
+/** Last-used generation controls, so the next run starts where the user left off. */
+export interface GenerationDefaults {
+  fitLevel?: FitLevel;
+  pageLimit?: PageLimit;
+  fillLastPage?: boolean;
+}
+
 export interface Settings {
   activeProviderId: ProviderId | null;
+  defaults?: GenerationDefaults;
   providers: {
     openrouter?: ProviderConfig;
     openai?: ProviderConfig;
@@ -29,6 +38,8 @@ export interface HistoryEntry {
   applied: boolean;
   providerId: ProviderId;
   model: string;
+  fitLevel?: FitLevel;
+  pageLimit?: PageLimit;
 }
 
 export const DEFAULT_SETTINGS: Settings = {

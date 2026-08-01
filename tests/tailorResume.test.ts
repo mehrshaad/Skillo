@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ErrorCode } from '@/lib/errors';
 import { buildDiff, diffStats } from '@/lib/diff';
+import { computePageBudget } from '@/lib/pipeline/pageBudget';
 import { regenerateResume, tailorResume } from '@/lib/pipeline/tailorResume';
 import type { JobProfile } from '@/lib/pipeline/types';
 import type { LLMProvider } from '@/lib/providers/types';
@@ -41,12 +42,16 @@ function providerReturning(...responses: ({ text: string; stopReason?: string } 
   return { id: 'openai', complete, test: async () => {} } satisfies LLMProvider;
 }
 
+// Calibrated from the fixture itself, so the page checks measure the retry
+// behaviour under test rather than the fixture being small.
 const input = (provider: LLMProvider) => ({
   provider,
   model: 'm',
   profile,
   notes: '',
   latex: ORIGINAL,
+  fitLevel: 3,
+  budget: computePageBudget(ORIGINAL, 1, false, 1),
 });
 
 describe('tailorResume', () => {

@@ -88,6 +88,109 @@ export function Note({ children, tone = 'warn' }: { children: ReactNode; tone?: 
   );
 }
 
+/**
+ * A stepped level control: N segments, filled up to the current value. Used for
+ * both the fit level and the page limit. Radio-group semantics so arrow keys
+ * work and screen readers announce it as a choice, not a slider.
+ */
+export function LevelBar({
+  value,
+  stops,
+  onChange,
+  label,
+  endLabels,
+  disabled = false,
+}: {
+  value: number;
+  stops: number;
+  onChange: (value: number) => void;
+  label: string;
+  endLabels?: [string, string];
+  disabled?: boolean;
+}) {
+  const items = Array.from({ length: stops }, (_, i) => i + 1);
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const delta = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -1 : 0;
+    if (delta === 0) return;
+    e.preventDefault();
+    onChange(Math.min(stops, Math.max(1, value + delta)));
+  };
+
+  return (
+    <div className="space-y-1">
+      <div
+        role="radiogroup"
+        aria-label={label}
+        onKeyDown={onKeyDown}
+        className="flex items-stretch gap-1"
+      >
+        {items.map((n) => (
+          <button
+            key={n}
+            role="radio"
+            aria-checked={n === value}
+            aria-label={`${label}: ${n} of ${stops}`}
+            tabIndex={n === value ? 0 : -1}
+            disabled={disabled}
+            onClick={() => onChange(n)}
+            className={`h-2.5 flex-1 rounded-sm transition-colors disabled:opacity-40 ${
+              n <= value ? 'bg-proof' : 'bg-rule hover:bg-proof/40'
+            }`}
+          />
+        ))}
+      </div>
+      {endLabels && (
+        <div className="flex justify-between font-mono text-[10px] text-muted">
+          <span>{endLabels[0]}</span>
+          <span>{endLabels[1]}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Toggle({
+  checked,
+  onChange,
+  label,
+  description,
+  disabled = false,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  description?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-start gap-2 text-left disabled:opacity-40"
+    >
+      <span
+        aria-hidden
+        className={`mt-0.5 flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 transition-colors ${
+          checked ? 'bg-proof' : 'bg-rule'
+        }`}
+      >
+        <span
+          className={`h-3 w-3 rounded-full bg-paper transition-transform ${
+            checked ? 'translate-x-3' : ''
+          }`}
+        />
+      </span>
+      <span>
+        <span className="block text-xs font-medium text-ink">{label}</span>
+        {description && <span className="block text-xs text-muted">{description}</span>}
+      </span>
+    </button>
+  );
+}
+
 export function Spinner() {
   return (
     <span

@@ -7,6 +7,7 @@ import {
   isResponseMessage,
   type OverleafOp,
 } from '@/lib/overleaf/protocol';
+import { readPageCount } from '@/lib/overleaf/pageCount';
 
 const RPC_TIMEOUT_MS = 5_000;
 let nextId = 0;
@@ -64,6 +65,12 @@ export default defineContentScript({
         callMainWorld({ op: 'read' })
           .then((data) => sendResponse(ok(data as OverleafDoc)))
           .catch((e: unknown) => sendResponse(fail(toAppError(e))));
+        return true;
+      }
+
+      // The PDF preview is ordinary DOM, so this needs no page JavaScript.
+      if (message?.type === 'overleaf/csPageCount') {
+        sendResponse(ok({ pages: readPageCount(document) }));
         return true;
       }
 

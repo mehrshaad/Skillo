@@ -1,10 +1,11 @@
 import { ErrorCode, appError, toAppError } from '@/lib/errors';
 import type { ChatMessage, LLMProvider } from '@/lib/providers/types';
 import { parseTailorOutput } from './parseOutput';
+import type { PageBudget } from './pageBudget';
 import {
   FORMAT_RETRY_NUDGE,
-  TAILOR_SYSTEM_PROMPT,
   buildRegenerateUserPrompt,
+  buildTailorSystemPrompt,
   buildTailorUserPrompt,
   buildValidationRetryNudge,
 } from './prompts';
@@ -20,11 +21,13 @@ export interface TailorInput {
   profile: JobProfile;
   notes: string;
   latex: string;
+  fitLevel: number;
+  budget: PageBudget;
 }
 
 export async function tailorResume(input: TailorInput): Promise<TailorResult> {
   const messages: ChatMessage[] = [
-    { role: 'system', content: TAILOR_SYSTEM_PROMPT },
+    { role: 'system', content: buildTailorSystemPrompt(input.fitLevel, input.budget) },
     { role: 'user', content: buildTailorUserPrompt(input.profile, input.notes, input.latex) },
   ];
   return runTailorExchange(input, messages);
@@ -36,7 +39,7 @@ export async function regenerateResume(
   feedback: string,
 ): Promise<TailorResult> {
   const messages: ChatMessage[] = [
-    { role: 'system', content: TAILOR_SYSTEM_PROMPT },
+    { role: 'system', content: buildTailorSystemPrompt(input.fitLevel, input.budget) },
     { role: 'user', content: buildTailorUserPrompt(input.profile, input.notes, input.latex) },
     { role: 'assistant', content: previousOutput },
     { role: 'user', content: buildRegenerateUserPrompt(feedback) },
@@ -57,7 +60,7 @@ async function runTailorExchange(
   input: TailorInput,
   messages: ChatMessage[],
 ): Promise<TailorResult> {
-  const { provider, model, latex } = input;
+  const { provider, model, latex, budget } = input;
   let maxTokens = BASE_MAX_TOKENS;
   let conversation = messages;
   let lastResult: TailorResult | null = null;
@@ -91,7 +94,7 @@ async function runTailorExchange(
       continue;
     }
 
-    const { problems, warnings } = validateLatex(parsed.latex, latex.length);
+    const { problems, warnings } = validateLatex(parsed.latex, latex.length, budget);
     const allIssues = [...problems, ...warnings];
 
     if (problems.length === 0) {

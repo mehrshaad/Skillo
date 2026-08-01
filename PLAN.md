@@ -436,6 +436,35 @@ Append here as they're discovered, v1-style (grounded observation beats this pla
 record the contradiction, don't silently absorb it). Reserved: the CWS `key` outcome and
 the assigned store id (needed by `scripts/build-bridge-installers.mjs`).
 
+**G1 — v1's core Overleaf assumption is now verified live.** Probed a real signed-in
+Overleaf project (read-only, nothing dispatched): `.cm-content` exists, `.cmView.view`
+resolves, `view.dispatch` is a function, and `view.state.doc.toString()` returned the
+real 11,938-character resume. This was the single largest unverified risk carried out of
+v1 and it holds against production Overleaf.
+
+**G2 — There is no "N of M" page indicator (contradicts §5's assumption).** The plan
+expected to read a page count from Overleaf's PDF toolbar. That toolbar has no such text
+in the current build. What does exist is better: the preview is PDF.js, which renders one
+`.page` element per page inside `.pdfViewer`, each carrying `data-page-number` and an
+`aria-label`. Taking the **highest** `data-page-number` is more robust than counting
+canvases, because PDF.js virtualizes canvases but keeps a placeholder element per page.
+Implemented in `src/lib/overleaf/pageCount.ts`. Because this needs no page JavaScript, it
+runs in the ISOLATED content script rather than the MAIN-world bridge.
+
+**G3 — Chars-per-page calibrated: 3600, not 3200.** Measured on a real two-page
+article-class resume: 7288 body characters over 2 compiled pages = 3644/page. The plan's
+placeholder was ~14% low. Set to 3600 (rounded down, since overshooting a page limit is
+the more annoying failure). Only used when Overleaf cannot report a real page count.
+
+**G4 — Estimated budgets are validated far more loosely than calibrated ones
+(refinement of §5).** The plan specified flat validator tolerances. But when the budget
+comes from the fallback constant rather than this resume's real page count, a tight
+tolerance would fail perfectly good revisions because a constant was wrong for that
+template. `PageBudget.calibrated` now selects between two tolerance sets (calibrated:
+1.15× over / 0.85× under-when-filling / 0.5× gutted; estimated: 1.45 / 0.65 / 0.4).
+Asserted by a test that the same over-length output passes on an estimated budget and
+fails on a calibrated one.
+
 ---
 
 ## 13. Instructions to the executor

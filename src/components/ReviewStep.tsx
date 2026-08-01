@@ -3,7 +3,98 @@ import { ErrorCode, type AppError } from '@/lib/errors';
 import { sendMessage } from '@/lib/messages';
 import type { WizardState } from '@/lib/state';
 import { DiffView } from './DiffView';
-import { Button, ErrorNote, Eyebrow, Note, Spinner, TextArea } from './ui';
+import { Button, Chip, ErrorNote, Eyebrow, Note, Spinner, TextArea } from './ui';
+
+const PAGE_POLL_ATTEMPTS = 7;
+const PAGE_POLL_INTERVAL_MS = 3_000;
+
+/**
+ * The only layer that knows what actually happened: Overleaf compiled the file
+ * and its PDF viewer says how many pages came out. Everything before this was
+ * an estimate.
+ */
+function PageCheck({
+  tabId,
+  pageLimit,
+  onRegenerate,
+}: {
+  tabId: number;
+  pageLimit: number;
+  onRegenerate: (feedback: string) => void;
+}) {
+  const [checking, setChecking] = useState(false);
+  const [pages, setPages] = useState<number | null>(null);
+  const [done, setDone] = useState(false);
+
+  const check = async () => {
+    setChecking(true);
+    setDone(false);
+
+    for (let attempt = 0; attempt < PAGE_POLL_ATTEMPTS; attempt++) {
+      const res = await sendMessage({ type: 'overleaf/pageCount', tabId });
+      if (res.ok && res.data.pages !== null) {
+        setPages(res.data.pages);
+        setChecking(false);
+        setDone(true);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, PAGE_POLL_INTERVAL_MS));
+    }
+
+    setPages(null);
+    setChecking(false);
+    setDone(true);
+  };
+
+  return (
+    <section className="space-y-2">
+      <Eyebrow>Page count</Eyebrow>
+
+      {!done && (
+        <>
+          <p className="text-xs text-muted">
+            Recompile in Overleaf, then check what actually came out.
+          </p>
+          <Button variant="secondary" disabled={checking} onClick={() => void check()}>
+            {checking ? <Spinner /> : null}
+            {checking ? 'Reading the compiled PDF…' : 'Check compiled page count'}
+          </Button>
+        </>
+      )}
+
+      {done && pages === null && (
+        <p className="text-xs text-muted">
+          Could not read the page count from Overleaf — the PDF pane may be closed or the project
+          may not have compiled. Check it yourself.
+        </p>
+      )}
+
+      {done && pages !== null && pages <= pageLimit && (
+        <Chip tone="proof">
+          compiled to {pages} {pages === 1 ? 'page' : 'pages'}
+        </Chip>
+      )}
+
+      {done && pages !== null && pages > pageLimit && (
+        <>
+          <Note>
+            It compiled to {pages} pages, but you asked for {pageLimit}. The character budget is an
+            estimate — the compiler is the truth.
+          </Note>
+          <Button
+            onClick={() =>
+              onRegenerate(
+                `The revision compiled to ${pages} pages but must fit ${pageLimit}. Cut the least job-relevant material until it fits.`,
+              )
+            }
+          >
+            Regenerate shorter
+          </Button>
+        </>
+      )}
+    </section>
+  );
+}
 
 export function ReviewStep({ state }: { state: WizardState }) {
   const [feedback, setFeedback] = useState('');
@@ -53,9 +144,9 @@ export function ReviewStep({ state }: { state: WizardState }) {
     URL.revokeObjectURL(url);
   };
 
-  const regenerate = async () => {
+  const regenerateWith = async (text: string) => {
     setError(null);
-    const res = await sendMessage({ type: 'pipeline/regenerate', feedback });
+    const res = await sendMessage({ type: 'pipeline/regenerate', feedback: text });
     if (res.ok) {
       setFeedback('');
       setShowFeedback(false);
@@ -63,6 +154,8 @@ export function ReviewStep({ state }: { state: WizardState }) {
       setError(res.error);
     }
   };
+
+  const regenerate = () => regenerateWith(feedback);
 
   return (
     <div className="space-y-4">
@@ -133,10 +226,19 @@ export function ReviewStep({ state }: { state: WizardState }) {
       )}
 
       {state.appliedAt && (
-        <Note tone="proof">
-          Written into Overleaf. Recompile there to check the PDF — Ctrl+Z in the Overleaf editor
-          undoes it in one step.
-        </Note>
+        <>
+          <Note tone="proof">
+            Written into Overleaf. Recompile there to check the PDF — Ctrl+Z in the Overleaf editor
+            undoes it in one step.
+          </Note>
+          {overleafTabId !== undefined && (
+            <PageCheck
+              tabId={overleafTabId}
+              pageLimit={state.pageLimit}
+              onRegenerate={(feedback) => regenerateWith(feedback)}
+            />
+          )}
+        </>
       )}
 
       {overleafTabId === undefined && (

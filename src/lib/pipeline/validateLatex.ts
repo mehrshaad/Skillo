@@ -1,3 +1,5 @@
+import { bodyChars, type PageBudget } from './pageBudget';
+
 export interface LatexValidation {
   /** Hard failures — worth spending a retry on. */
   problems: string[];
@@ -7,6 +9,17 @@ export interface LatexValidation {
 
 /** Whole-file rewrites drift; beyond this the model rewrote rather than tailored. */
 const MAX_LENGTH_DRIFT = 0.4;
+
+/**
+ * Page tolerances. A budget calibrated from this resume's real compiled page
+ * count can be held to fairly tight bounds; an estimated one cannot, so it is
+ * checked only for gross failures. Guessing loosely beats failing a good
+ * revision because a constant was wrong.
+ */
+const PAGE_TOLERANCE = {
+  calibrated: { over: 1.15, underWhenFilling: 0.85, gutted: 0.5 },
+  estimated: { over: 1.45, underWhenFilling: 0.65, gutted: 0.4 },
+} as const;
 /** Templates do odd things with braces, so only a clear imbalance is a failure. */
 const BRACE_TOLERANCE = 2;
 
@@ -24,7 +37,11 @@ const TRUNCATION_MARKERS = [
  * unclosed environment, a wholesale rewrite) without trying to be a parser.
  * The user still compiles in Overleaf before anything is final.
  */
-export function validateLatex(latex: string, originalLength: number): LatexValidation {
+export function validateLatex(
+  latex: string,
+  originalLength: number,
+  budget?: PageBudget,
+): LatexValidation {
   const problems: string[] = [];
   const warnings: string[] = [];
   const code = stripComments(latex);
@@ -58,7 +75,11 @@ export function validateLatex(latex: string, originalLength: number): LatexValid
     }
   }
 
-  if (originalLength > 0) {
+  // A page budget supersedes the generic drift rule: the user asked for a
+  // specific length, so that is the thing to hold the output to.
+  if (budget) {
+    problems.push(...checkPageBudget(latex, budget));
+  } else if (originalLength > 0) {
     const drift = (latex.length - originalLength) / originalLength;
     if (Math.abs(drift) > MAX_LENGTH_DRIFT) {
       problems.push(
@@ -70,6 +91,31 @@ export function validateLatex(latex: string, originalLength: number): LatexValid
   }
 
   return { problems, warnings };
+}
+
+function checkPageBudget(latex: string, budget: PageBudget): string[] {
+  const problems: string[] = [];
+  const body = bodyChars(latex);
+  const tolerance = budget.calibrated ? PAGE_TOLERANCE.calibrated : PAGE_TOLERANCE.estimated;
+  const pages = budget.pageLimit === 1 ? '1 page' : `${budget.pageLimit} pages`;
+
+  if (body > budget.targetChars * tolerance.over) {
+    problems.push(
+      `At ${body} characters of content this will not fit ${pages} (budget ${budget.targetChars}). Cut the least job-relevant material.`,
+    );
+  }
+
+  if (budget.fillLastPage && body < budget.targetChars * tolerance.underWhenFilling) {
+    problems.push(
+      `At ${body} characters this leaves the last page mostly empty (budget ${budget.targetChars}), but you asked for the pages to be filled.`,
+    );
+  } else if (!budget.fillLastPage && body < budget.targetChars * tolerance.gutted) {
+    problems.push(
+      `Only ${body} characters of content survived against a budget of ${budget.targetChars} — too much was cut.`,
+    );
+  }
+
+  return problems;
 }
 
 /** Removes `%` comments, respecting the `\%` escape. */
