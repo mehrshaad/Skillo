@@ -12,6 +12,10 @@ import type { JobPosting } from '@/lib/jobIntake/types';
 import { buildProvider, getActiveProvider } from '@/lib/providers/registry';
 import { getSettings } from '@/lib/storage';
 import { analyzeJob } from '@/lib/pipeline/analyzeJob';
+import { regenerateResume, tailorResume } from '@/lib/pipeline/tailorResume';
+import type { JobProfile, TailorResult } from '@/lib/pipeline/types';
+import { sendToTab, type OverleafDoc, type OverleafTabInfo } from '@/lib/messages';
+import type { WizardState } from '@/lib/state';
 
 type Handler<K extends MessageType> = (
   msg: MessageOf<K>,
@@ -51,6 +55,42 @@ const handlers: HandlerMap = {
     return provider.listModels();
   },
 
+  'overleaf/listTabs': async () => {
+    const tabs = await browser.tabs.query({ url: 'https://www.overleaf.com/project/*' });
+    return tabs
+      .filter((t): t is typeof t & { id: number } => typeof t.id === 'number')
+      .map<OverleafTabInfo>((t) => ({
+        tabId: t.id,
+        title: t.title ?? 'Overleaf project',
+        url: t.url ?? '',
+      }));
+  },
+
+  'overleaf/read': async (msg) => {
+    const doc = await readOverleafDoc(msg.tabId);
+    await patchState({
+      resume: {
+        kind: 'overleaf',
+        latex: doc.latex,
+        hash: doc.hash,
+        filename: doc.filename,
+        tabId: msg.tabId,
+        readAt: new Date().toISOString(),
+      },
+      generation: { status: 'idle' },
+    });
+    return doc;
+  },
+
+  'pipeline/tailor': async (msg) => runGeneration(msg.notes, null),
+  'pipeline/regenerate': async (msg) => {
+    const state = await getState();
+    if (!state.generation.result) {
+      throw appError(ErrorCode.INTERNAL, 'There is no previous revision to build on.');
+    }
+    return runGeneration(state.notes, { previous: state.generation.result, feedback: msg.feedback });
+  },
+
   'pipeline/analyze': async () => {
     const state = await getState();
     if (!state.job) {
@@ -82,6 +122,91 @@ async function acceptJob(job: JobPosting): Promise<JobPosting> {
     step: 'job',
   });
   return job;
+}
+
+/**
+ * Content scripts are declared for Overleaf, but a tab opened before the
+ * extension was installed or reloaded has none. Inject on demand rather than
+ * making the user reload.
+ */
+async function readOverleafDoc(tabId: number): Promise<OverleafDoc> {
+  const first = await sendToTab(tabId, { type: 'overleaf/csRead' });
+  if (first.ok) return first.data;
+
+  try {
+    await browser.scripting.executeScript({
+      target: { tabId },
+      files: ['/content-scripts/overleaf-main.js'],
+      world: 'MAIN',
+    });
+    await browser.scripting.executeScript({
+      target: { tabId },
+      files: ['/content-scripts/overleaf.js'],
+    });
+  } catch {
+    throw first.error; // injection failed; the original message is more useful
+  }
+
+  const second = await sendToTab(tabId, { type: 'overleaf/csRead' });
+  if (!second.ok) throw second.error;
+  return second.data;
+}
+
+interface RegenerationContext {
+  previous: TailorResult;
+  feedback: string;
+}
+
+/** Rebuilds the assistant turn so a revision can be critiqued in context. */
+function asModelOutput(result: TailorResult): string {
+  return `===CHANGES===\n${result.changeSummary}\n===LATEX===\n${result.latex}\n===END===`;
+}
+
+async function runGeneration(
+  notes: string,
+  regeneration: RegenerationContext | null,
+): Promise<WizardState> {
+  const state = await getState();
+
+  if (state.generation.status === 'analyzing' || state.generation.status === 'tailoring') {
+    throw appError(
+      ErrorCode.ALREADY_RUNNING,
+      'A revision is already being generated. Wait for it to finish.',
+    );
+  }
+  if (!state.job) throw appError(ErrorCode.INTERNAL, 'Capture a job posting first.');
+  if (!state.resume) throw appError(ErrorCode.INTERNAL, 'Load your resume first.');
+
+  const runId = `run-${Date.now()}`;
+  const startedAt = new Date().toISOString();
+
+  try {
+    const { provider, model } = await getActiveProvider();
+
+    // The profile is normally produced on the job step; analyze on demand if not.
+    let profile: JobProfile | undefined = state.jobProfile;
+    if (!profile) {
+      await patchState({ generation: { status: 'analyzing', runId, startedAt } });
+      profile = await analyzeJob(provider, model, state.job);
+      await patchState({ jobProfile: profile });
+    }
+
+    await patchState({ notes, generation: { status: 'tailoring', runId, startedAt } });
+
+    const input = { provider, model, profile, notes, latex: state.resume.latex };
+    const result = regeneration
+      ? await regenerateResume(input, asModelOutput(regeneration.previous), regeneration.feedback)
+      : await tailorResume(input);
+
+    return patchState({
+      step: 'review',
+      generation: { status: 'done', runId, startedAt, result },
+    });
+  } catch (e) {
+    const error = toAppError(e);
+    await patchState({ generation: { status: 'error', runId, startedAt, error } });
+    throw error;
+  }
 }
 
 async function route(

@@ -75,7 +75,31 @@ mocked `fetch`, error mapping, backoff, JSON extraction, and the analyze retry p
 
 ## M3 — Resume input, tailoring, review
 
-*(to be filled in when the milestone lands)*
+Needs a real Overleaf project and a configured model. Automated already: the LaTeX
+validators against broken fixtures, the diff model, and every branch of the tailoring
+retry logic (format failure, validation failure, truncation).
+
+- [ ] With an Overleaf project open on your resume's `.tex` in the **Code Editor**, step 2
+      lists the tab; clicking it shows the filename and a character count that matches the
+      real document (check the end of the file is present, not just the start)
+- [ ] Switch the Overleaf tab to the **Visual Editor** (or open the PDF-only view) and read
+      again → the error tells you to switch to the Code Editor rather than failing generically
+- [ ] Open Overleaf *after* the extension was loaded, without reloading the tab → reading
+      still works (the content scripts are injected on demand)
+- [ ] Paste tab: pasting a fragment with no `\documentclass` keeps the button disabled and
+      explains why; pasting a full file works
+- [ ] Upload tab: uploading a real `.tex` works; uploading a non-LaTeX text file is refused
+- [ ] A resume using `\input{}` shows the multi-file warning naming the included files
+- [ ] Step 3: **Generate** shows "Reading the job posting…" then "Rewriting your resume…"
+- [ ] Close the panel mid-generation, reopen → the result is there (or it is still running)
+- [ ] Step 4: the change summary describes real edits, and the diff shows those same edits —
+      spot-check that at least one summary bullet matches a diff line
+- [ ] **Read the diff for invented content.** Every company, date, degree and metric in the
+      new version must appear in the old version. This is the check the whole design leans on
+- [ ] Copy LaTeX puts the full file on the clipboard; Download .tex saves a file that opens
+- [ ] Regenerate with feedback ("keep the education section where it was") visibly changes
+      the next revision
+- [ ] Paste the result into Overleaf by hand and recompile — it builds without LaTeX errors
 
 ## M4 — Apply, history, hardening
 
