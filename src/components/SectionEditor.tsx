@@ -104,7 +104,7 @@ export function SectionEditor({
       </button>
 
       {open && (
-        <div className="space-y-2">
+        <div className="panel-enter space-y-2">
           <p className="text-xs text-muted">
             Reorder, rename or trim before tailoring. Drag a card, or use the arrows — both
             work, and the arrows work without a mouse.
@@ -122,8 +122,8 @@ export function SectionEditor({
                   if (dragging !== null) move(dragging, index);
                   setDragging(null);
                 }}
-                className={`rounded-sm border-2 bg-paper px-2 py-1.5 ${
-                  dragging === index ? 'border-proof opacity-60' : 'border-rule'
+                className={`rounded border bg-paper px-2 py-1.5 transition-all duration-150 ${
+                  dragging === index ? 'border-proof opacity-50' : 'border-rule'
                 }`}
               >
                 <div className="flex items-center gap-1.5">
@@ -178,20 +178,22 @@ export function SectionEditor({
                 </div>
 
                 {expanded === section.id && (
-                  <TextArea
-                    rows={8}
-                    className="mt-1.5 font-mono"
-                    aria-label={`${section.title} content`}
-                    value={sectionBody(section)}
-                    spellCheck={false}
-                    onChange={(e) =>
-                      commit(
-                        doc.sections.map((s, i) =>
-                          i === index ? replaceSectionBody(s, e.target.value) : s,
-                        ),
-                      )
-                    }
-                  />
+                  <div className="panel-enter">
+                    <TextArea
+                      rows={8}
+                      className="mt-1.5 font-mono"
+                      aria-label={`${section.title} content`}
+                      value={sectionBody(section)}
+                      spellCheck={false}
+                      onChange={(e) =>
+                        commit(
+                          doc.sections.map((s, i) =>
+                            i === index ? replaceSectionBody(s, e.target.value) : s,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
                 )}
               </li>
             ))}

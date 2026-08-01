@@ -112,6 +112,57 @@ describe('recording observations', () => {
   });
 });
 
+describe('a fill the user reported', () => {
+  const preamble = '\\usepackage{geometry}';
+  const latex = doc(preamble, 7288);
+
+  it('pins the capacity instead of bounding it', () => {
+    // "This came out to about 1.4 pages" says a page holds 7288 / 1.4.
+    const model = learn([{ ...obs(7288, 1.4), exact: true }])!;
+    expect(model.estimate).toBe(5206);
+    expect(model.exactSamples).toBe(1);
+  });
+
+  it('replaces the inferred figure with the measured one', async () => {
+    await recordObservation(latex, 2);
+    const counted = computePageBudget(1, false, (await getDensityModel(latex))!);
+    expect(counted.measured).toBe(false);
+
+    // "It came out to about 1.4 pages" ⇒ a page holds 7288 / 1.4 ≈ 5206.
+    await recordObservation(latex, 1.4, true);
+    const reported = computePageBudget(1, false, (await getDensityModel(latex))!);
+
+    expect(reported.measured).toBe(true);
+    expect(reported.charsPerPage).toBe(Math.round(5206 * 0.97));
+  });
+
+  it('takes the median of several readings, so one careless drag does not win', () => {
+    const model = learn([
+      { ...obs(6000, 1.0), exact: true },
+      { ...obs(6000, 1.2), exact: true },
+      { ...obs(6000, 3.0), exact: true },
+    ])!;
+    expect(model.estimate).toBe(5000); // 6000 / 1.2
+  });
+
+  it('accepts a fraction below one page, which a page count never could', async () => {
+    await recordObservation(latex, 0.6, true);
+    expect((await getDensityModel(latex))!.estimate).toBe(Math.round(7288 / 0.6));
+  });
+
+  it('still refuses a nonsensical reading', async () => {
+    await recordObservation(latex, 0, true);
+    expect(await getDensityModel(latex)).toBeNull();
+  });
+
+  it('overrides the counted bounds once it exists', () => {
+    const model = learn([obs(7288, 2), { ...obs(7288, 1.4), exact: true }])!;
+    expect(model.lower).toBe(3644); // the counted bound is still there
+    expect(model.estimate).toBe(5206); // but the reading is what gets used
+    expect(computePageBudget(1, false, model).charsPerPage).toBe(Math.round(5206 * 0.97));
+  });
+});
+
 describe('budgeting from what was learned', () => {
   const preamble = '\\usepackage{geometry}';
   const latex = doc(preamble, 7288);

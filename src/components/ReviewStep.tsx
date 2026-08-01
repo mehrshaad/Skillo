@@ -6,6 +6,7 @@ import { projectedPages, type PageBudget } from '@/lib/pipeline/pageBudget';
 import { DiffView } from './DiffView';
 import { MatchScoreCard } from './MatchScoreCard';
 import { AtsScoreCard } from './AtsScoreCard';
+import { PageFillReport } from './PageFillReport';
 import { Button, Chip, ErrorNote, SectionHeader, Note, Spinner, TextArea } from './ui';
 
 const PAGE_POLL_ATTEMPTS = 7;
@@ -120,7 +121,10 @@ function PageProjection({ latex, budget }: { latex: string; budget?: PageBudget 
       {budget.pageLimit === 1 ? 'page' : 'pages'}
       <span className="text-muted">
         {' '}
-        · estimated from {budget.samples} previous {budget.samples === 1 ? 'compile' : 'compiles'}
+        ·{' '}
+        {budget.measured
+          ? 'based on what you reported'
+          : `estimated from ${budget.samples} ${budget.samples === 1 ? 'compile' : 'compiles'}`}
       </span>
     </p>
   );
@@ -218,6 +222,36 @@ export function ReviewStep({ state }: { state: WizardState }) {
       </section>
 
       <PageProjection latex={result.latex} budget={state.generation.budget} />
+
+      <PageFillReport
+        title="How long did it actually come out?"
+        pageLimit={state.pageLimit}
+        defaultValue={
+          (state.generation.budget
+            ? projectedPages(result.latex, state.generation.budget)
+            : null) ?? state.pageLimit
+        }
+        actionable
+        onSubmit={async (actualPages, action) => {
+          setError(null);
+          const recorded = await sendMessage({
+            type: 'density/report',
+            actualPages,
+            of: 'revision',
+          });
+          if (!recorded.ok) {
+            setError(recorded.error);
+            return;
+          }
+          if (action === 'none') return;
+
+          await regenerateWith(
+            action === 'fill'
+              ? `Your revision comes out to about ${actualPages.toFixed(1)} pages, but there is room for ${state.pageLimit}. Expand the most job-relevant material to use that space — more substance on the experience that matters most for this job — without going past ${state.pageLimit} pages.`
+              : `Your revision comes out to about ${actualPages.toFixed(1)} pages but must fit ${state.pageLimit}. Cut the least job-relevant material until it fits.`,
+          );
+        }}
+      />
 
       <DiffView oldText={resume.latex} newText={result.latex} />
 

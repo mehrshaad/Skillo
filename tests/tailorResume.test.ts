@@ -55,7 +55,7 @@ const input = (provider: LLMProvider) => ({
   // these tests measure the retry behaviour rather than the budget.
   budget: computePageBudget(1, false, {
     lower: Math.round(bodyChars(REVISED) * 1.2),
-    upper: null,
+    upper: null, estimate: null, exactSamples: 0,
     samples: 1,
   }),
 });

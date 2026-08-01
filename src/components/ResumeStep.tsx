@@ -4,6 +4,7 @@ import { sendMessage, type OverleafTabInfo } from '@/lib/messages';
 import { LARGE_RESUME_CHARS, findIncludedFiles, looksLikeLatex } from '@/lib/resumeInput';
 import type { ResumeSource } from '@/lib/state';
 import { SectionEditor } from './SectionEditor';
+import { PageFillReport } from './PageFillReport';
 import { Button, Chip, ErrorNote, SectionHeader, Note, Spinner, TextArea } from './ui';
 
 type Mode = 'overleaf' | 'paste' | 'upload';
@@ -168,6 +169,16 @@ export function ResumeStep({ resume }: { resume?: ResumeSource }) {
 function ResumeCard({ resume }: { resume: ResumeSource }) {
   const included = findIncludedFiles(resume.latex);
   const lines = resume.latex.split('\n').length;
+  const [detectedPages, setDetectedPages] = useState<number | null>(null);
+
+  // Knowing how long this document really is calibrates the very first
+  // generation, before there is anything compiled to learn from.
+  useEffect(() => {
+    if (resume.kind !== 'overleaf' || resume.tabId === undefined) return;
+    void sendMessage({ type: 'overleaf/pageCount', tabId: resume.tabId }).then((res) => {
+      if (res.ok && res.data.pages !== null) setDetectedPages(res.data.pages);
+    });
+  }, [resume.kind, resume.tabId]);
 
   return (
     <div className="space-y-3">
@@ -199,6 +210,24 @@ function ResumeCard({ resume }: { resume: ResumeSource }) {
           At {resume.latex.length.toLocaleString()} characters this is a large file. The whole thing
           is sent to your model on every generation, so expect it to be slow and to cost more.
         </Note>
+      )}
+
+      {detectedPages !== null && (
+        <div className="border-t border-rule pt-3">
+          <PageFillReport
+            title="How long is this really?"
+            defaultValue={detectedPages}
+            onSubmit={async (actualPages) => {
+              await sendMessage({ type: 'density/report', actualPages, of: 'resume' });
+            }}
+          />
+          <p className="mt-1 text-xs text-muted">
+            Skillo can count the pages but not how full the last one is. Drag to what you
+            see — {detectedPages} full {detectedPages === 1 ? 'page' : 'pages'} would be{' '}
+            {detectedPages}.0, a half-empty last page about {detectedPages - 0.5}. It only
+            needs doing once per template.
+          </p>
+        </div>
       )}
 
       <SectionEditor

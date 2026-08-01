@@ -31,6 +31,7 @@ const budget = (over: Partial<PageBudget> = {}): PageBudget => ({
   ceilingChars: null,
   calibrated: true,
   samples: 3,
+  measured: false,
   ...over,
 });
 
@@ -98,7 +99,7 @@ describe('page budget', () => {
   });
 
   it('aims into the learned interval rather than at its pessimistic floor', () => {
-    const result = computePageBudget(2, false, { lower: 3600, upper: 4600, samples: 3 });
+    const result = computePageBudget(2, false, { lower: 3600, upper: 4600, estimate: null, exactSamples: 0, samples: 3 });
     expect(result.calibrated).toBe(true);
     // 40% into [3600, 4600].
     expect(result.charsPerPage).toBe(4000);
@@ -108,7 +109,7 @@ describe('page budget', () => {
   });
 
   it('aims higher when asked to fill the page', () => {
-    const model = { lower: 3600, upper: 4600, samples: 3 };
+    const model = { lower: 3600, upper: 4600, estimate: null, exactSamples: 0, samples: 3 };
     const normal = computePageBudget(2, false, model);
     const filling = computePageBudget(2, true, model);
 
@@ -117,7 +118,7 @@ describe('page budget', () => {
   });
 
   it('falls back to the floor while no upper bound is known', () => {
-    const result = computePageBudget(1, false, { lower: 3600, upper: null, samples: 1 });
+    const result = computePageBudget(1, false, { lower: 3600, upper: null, estimate: null, exactSamples: 0, samples: 1 });
     expect(result.charsPerPage).toBe(3600);
     expect(result.ceilingChars).toBeNull();
   });
@@ -135,7 +136,7 @@ describe('page budget', () => {
   });
 
   it('projects pages only from a calibrated budget', () => {
-    const calibrated = computePageBudget(2, false, { lower: 500, upper: null, samples: 1 });
+    const calibrated = computePageBudget(2, false, { lower: 500, upper: null, estimate: null, exactSamples: 0, samples: 1 });
     expect(projectedPages(latex, calibrated)).toBe(2);
     expect(projectedPages(latex, computePageBudget(2, false, null))).toBeNull();
   });

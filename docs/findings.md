@@ -49,7 +49,11 @@ canvases are virtualized while placeholder elements persist.
 - Loading the PDF directly through the exposed `pdfjsLib` was rejected on a different
   ground: the compiled-PDF URL carries authentication in its query string.
 
-So Skillo reports page **count**, never fill, and the UI says so.
+So Skillo cannot read fill — **but the user can see it**, so they report it with a slider
+("this came out to about 1.3 pages"). A reported fraction is strictly better than anything
+Skillo could measure for itself: an integer page count only *bounds* the capacity, whereas
+a fraction pins it at `bodyChars / pages`. One drag calibrates every future run on that
+template, and the median of several readings absorbs a careless one.
 
 **Page capacity is learned from page counts instead.** An integer page count is a step
 function of content, so each compile bounds the capacity `C` of one page:

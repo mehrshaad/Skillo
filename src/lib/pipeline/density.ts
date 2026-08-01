@@ -25,7 +25,14 @@ import { bodyChars } from './pageBudget';
 
 export interface DensityObservation {
   bodyChars: number;
+  /** Whole pages when counted from the PDF; fractional when the user reported it. */
   pages: number;
+  /**
+   * True when a person read the real fill off the page ("about 1.3 pages").
+   * Worth far more than a page count: an integer only bounds the capacity,
+   * whereas a fraction pins it — capacity is simply bodyChars / pages.
+   */
+  exact?: boolean;
   at: string;
 }
 
@@ -34,7 +41,10 @@ export interface DensityModel {
   lower: number;
   /** Characters that certainly do not all fit on one page, when known. */
   upper: number | null;
+  /** Capacity as measured by a person, when one has told us. */
+  estimate: number | null;
   samples: number;
+  exactSamples: number;
 }
 
 const STORE_KEY = 'density';
@@ -56,15 +66,24 @@ export function templateKey(latex: string): string {
 }
 
 export function learn(observations: DensityObservation[]): DensityModel | null {
+  // A counted page is at least one; a reported fill can be a fraction of one,
+  // and "this only half filled a page" is a perfectly good measurement.
   const usable = observations.filter(
-    (o) => Number.isFinite(o.bodyChars) && o.bodyChars > 0 && o.pages >= 1,
+    (o) =>
+      Number.isFinite(o.bodyChars) && o.bodyChars > 0 && o.pages >= (o.exact ? 0.05 : 1),
   );
   if (usable.length === 0) return null;
 
   let lower = 0;
   let upper: number | null = null;
+  const measured: number[] = [];
 
   for (const o of usable) {
+    if (o.exact) {
+      // A person read the real fill: capacity follows directly.
+      measured.push(o.bodyChars / o.pages);
+      continue;
+    }
     lower = Math.max(lower, o.bodyChars / o.pages);
     if (o.pages > 1) {
       const bound = o.bodyChars / (o.pages - 1);
@@ -77,7 +96,25 @@ export function learn(observations: DensityObservation[]): DensityModel | null {
   // inventing a reconciliation.
   if (upper !== null && upper <= lower) upper = null;
 
-  return { lower: Math.round(lower), upper: upper === null ? null : Math.round(upper), samples: usable.length };
+  // The median resists one careless drag of the slider without needing to
+  // decide which reading was the careless one.
+  const estimate = measured.length > 0 ? median(measured) : null;
+
+  return {
+    lower: Math.round(lower),
+    upper: upper === null ? null : Math.round(upper),
+    estimate: estimate === null ? null : Math.round(estimate),
+    samples: usable.length,
+    exactSamples: measured.length,
+  };
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1]! + sorted[middle]!) / 2
+    : sorted[middle]!;
 }
 
 /* ------------------------------------------------------------------ storage */
@@ -92,9 +129,18 @@ export async function getDensityModel(latex: string): Promise<DensityModel | nul
   return learn(store[templateKey(latex)] ?? []);
 }
 
-/** Records one compiled outcome for the template this document uses. */
-export async function recordObservation(latex: string, pages: number): Promise<void> {
-  if (!Number.isFinite(pages) || pages < 1) return;
+/**
+ * Records one compiled outcome. `exact` marks a reading a person took off the
+ * rendered page, which may be fractional.
+ */
+export async function recordObservation(
+  latex: string,
+  pages: number,
+  exact = false,
+): Promise<void> {
+  // A counted page is at least one; a reported fill can be a fraction of one.
+  const floor = exact ? 0.05 : 1;
+  if (!Number.isFinite(pages) || pages < floor) return;
 
   const chars = bodyChars(latex);
   if (chars <= 0) return;
@@ -104,13 +150,15 @@ export async function recordObservation(latex: string, pages: number): Promise<v
   const existing = store[key] ?? [];
 
   // Same measurement twice tells us nothing new.
-  const duplicate = existing.some((o) => o.bodyChars === chars && o.pages === pages);
+  const duplicate = existing.some(
+    (o) => o.bodyChars === chars && o.pages === pages && Boolean(o.exact) === exact,
+  );
   if (duplicate) return;
 
-  store[key] = [{ bodyChars: chars, pages, at: new Date().toISOString() }, ...existing].slice(
-    0,
-    MAX_OBSERVATIONS,
-  );
+  store[key] = [
+    { bodyChars: chars, pages, ...(exact ? { exact: true } : {}), at: new Date().toISOString() },
+    ...existing,
+  ].slice(0, MAX_OBSERVATIONS);
 
   // Keep the store small: drop the templates touched longest ago.
   const keys = Object.keys(store);

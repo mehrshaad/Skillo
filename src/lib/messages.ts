@@ -35,6 +35,11 @@ export interface MessageMap {
   };
   /** null when the project has not been compiled or the PDF pane is closed. */
   'overleaf/pageCount': { req: { tabId: number }; res: { pages: number | null } };
+  /**
+   * The user read the real fill off the compiled page. Worth more than a page
+   * count, because a fraction pins the capacity instead of bounding it.
+   */
+  'density/report': { req: { actualPages: number; of: 'resume' | 'revision' }; res: { ok: true } };
   'pipeline/analyze': { req: {}; res: WizardState };
   'pipeline/tailor': { req: { notes: string }; res: WizardState };
   'pipeline/regenerate': { req: { feedback: string }; res: WizardState };

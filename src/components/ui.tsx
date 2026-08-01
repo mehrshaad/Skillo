@@ -57,8 +57,12 @@ export function Collapsible({
         aria-expanded={open}
         className="flex w-full items-center gap-2 px-3 py-2 text-left"
       >
-        <span aria-hidden className="font-mono text-[10px] text-muted">
-          {open ? '▾' : '▸'}
+        <span
+          aria-hidden
+          className="font-mono text-[10px] text-muted transition-transform duration-150"
+          style={{ transform: open ? 'rotate(90deg)' : 'none' }}
+        >
+          ▸
         </span>
         <span className="font-mono text-[12.5px] font-semibold text-ink">{title}</span>
         {headline && <span className="ml-auto">{headline}</span>}
@@ -66,7 +70,7 @@ export function Collapsible({
           <span className="font-mono text-[10px] text-muted">{hint}</span>
         )}
       </button>
-      {open && <div className="space-y-3 px-3 pb-3">{children}</div>}
+      {open && <div className="panel-enter space-y-3 px-3 pb-3">{children}</div>}
     </section>
   );
 }

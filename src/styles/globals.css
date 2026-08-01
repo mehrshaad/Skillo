@@ -79,6 +79,57 @@ button:disabled,
   cursor: grabbing;
 }
 
+/*
+ * Motion is kept short — long enough to show where something came from, short
+ * enough that a user moving quickly never waits for it. The reduced-motion rule
+ * below turns all of it off.
+ */
+button,
+a,
+summary,
+input,
+textarea,
+[role='radio'],
+[role='switch'] {
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease;
+}
+
+@keyframes skillo-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Moving between wizard steps. */
+.step-enter {
+  animation: skillo-step-in 150ms ease-out;
+}
+
+@keyframes skillo-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Anything that unfolds in place: score cards, the section list. */
+.panel-enter {
+  animation: skillo-panel-in 120ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

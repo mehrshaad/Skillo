@@ -118,7 +118,8 @@ export default function App() {
         })}
       </nav>
 
-      <main className="flex-1 overflow-y-auto px-4 py-4">
+      {/* Keyed by step so the entry animation replays on each move. */}
+      <main key={state.step} className="step-enter flex-1 overflow-y-auto px-4 py-4">
         {state.step === 'job' && (
           <JobStep
             job={state.job}

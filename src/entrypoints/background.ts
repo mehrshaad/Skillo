@@ -150,6 +150,18 @@ const handlers: HandlerMap = {
     return result;
   },
 
+  'density/report': async (msg) => {
+    const state = await getState();
+    const latex =
+      msg.of === 'revision' ? state.generation.result?.latex : state.resume?.latex;
+
+    if (!latex) {
+      throw appError(ErrorCode.INTERNAL, 'There is nothing to measure against yet.');
+    }
+    await recordObservation(latex, msg.actualPages, true);
+    return { ok: true } as const;
+  },
+
   'pipeline/tailor': async (msg) => runGeneration(msg.notes, null),
   'pipeline/regenerate': async (msg) => {
     const state = await getState();

@@ -34,6 +34,13 @@ export const DEFAULT_CHARS_PER_PAGE = 3600;
  */
 const AIM = { normal: 0.4, filling: 0.6 } as const;
 
+/**
+ * Applied when a person has told us the real fill. Their reading is good but
+ * approximate, and a page limit is worth a little more than the last 3% of a
+ * page.
+ */
+const MEASURED_SAFETY = 0.97;
+
 export interface PageBudget {
   pageLimit: number;
   fillLastPage: boolean;
@@ -46,6 +53,8 @@ export interface PageBudget {
   calibrated: boolean;
   /** How many compiles the model rests on. */
   samples: number;
+  /** True once a person has reported the real fill for this template. */
+  measured: boolean;
 }
 
 export { bodyChars, documentBody } from '@/lib/latexText';
@@ -64,23 +73,36 @@ export function computePageBudget(
       ceilingChars: null,
       calibrated: false,
       samples: 0,
+      measured: false,
     };
   }
 
   const aim = fillLastPage ? AIM.filling : AIM.normal;
+
+  // A reading taken off the real page beats anything inferred from page counts,
+  // so it is used directly rather than as one end of an interval.
   const charsPerPage =
-    model.upper === null
-      ? model.lower
-      : Math.round(model.lower + (model.upper - model.lower) * aim);
+    model.estimate !== null
+      ? Math.round(model.estimate * MEASURED_SAFETY)
+      : model.upper === null
+        ? model.lower
+        : Math.round(model.lower + (model.upper - model.lower) * aim);
 
   return {
     pageLimit,
     fillLastPage,
     charsPerPage,
     targetChars: charsPerPage * pageLimit,
-    ceilingChars: model.upper === null ? null : model.upper * pageLimit,
+    // A measured capacity is its own ceiling: past it, the page is full.
+    ceilingChars:
+      model.estimate !== null
+        ? model.estimate * pageLimit
+        : model.upper === null
+          ? null
+          : model.upper * pageLimit,
     calibrated: true,
     samples: model.samples,
+    measured: model.exactSamples > 0,
   };
 }
 
