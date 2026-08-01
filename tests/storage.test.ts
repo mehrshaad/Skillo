@@ -71,6 +71,84 @@ describe('settings storage', () => {
   });
 });
 
+describe('settings storage split', () => {
+  const rawSync = async () => (await fakeBrowser.storage.sync.get(null)) as Record<string, unknown>;
+  const rawLocal = async () =>
+    (await fakeBrowser.storage.local.get(null)) as Record<string, unknown>;
+
+  it('never lets an API key reach sync storage', async () => {
+    await saveSettings({
+      activeProviderId: 'openrouter',
+      providers: { openrouter: { apiKey: 'sk-secret-value', model: 'some/model' } },
+    });
+
+    // The whole sync area, serialized, must not contain the key anywhere.
+    expect(JSON.stringify(await rawSync())).not.toContain('sk-secret-value');
+    expect(JSON.stringify(await rawLocal())).toContain('sk-secret-value');
+  });
+
+  it('puts the choices worth carrying between machines into sync', async () => {
+    await saveSettings({
+      activeProviderId: 'anthropic',
+      providers: { anthropic: { apiKey: 'sk-ant', model: 'claude-model' } },
+      defaults: { fitLevel: 4, pageLimit: 1, fillLastPage: true },
+      ui: { matchExpanded: true },
+    });
+
+    const synced = JSON.stringify(await rawSync());
+    expect(synced).toContain('anthropic');
+    expect(synced).toContain('claude-model');
+    expect(synced).toContain('fillLastPage');
+    expect(synced).toContain('matchExpanded');
+  });
+
+  it('reassembles both halves on read', async () => {
+    await saveSettings({
+      activeProviderId: 'openai',
+      providers: { openai: { apiKey: 'sk-openai', model: 'gpt-model' } },
+      defaults: { pageLimit: 3 },
+    });
+
+    const settings = await getSettings();
+    expect(settings.activeProviderId).toBe('openai');
+    expect(settings.providers.openai).toEqual({ apiKey: 'sk-openai', model: 'gpt-model' });
+    expect(settings.defaults?.pageLimit).toBe(3);
+  });
+
+  it('carries the Claude Code toggle through sync', async () => {
+    await saveSettings({
+      activeProviderId: 'claude-code',
+      providers: { claudeCode: { enabled: true } },
+    });
+    expect((await getSettings()).providers.claudeCode).toEqual({ enabled: true });
+  });
+
+  it('migrates a pre-split settings blob without making the user re-paste keys', async () => {
+    // What an older install left behind: everything in one local blob.
+    await fakeBrowser.storage.local.set({
+      settings: {
+        activeProviderId: 'openrouter',
+        providers: { openrouter: { apiKey: 'sk-legacy', model: 'legacy/model' } },
+        defaults: { fitLevel: 5 },
+      },
+    });
+
+    const migrated = await getSettings();
+    expect(migrated.providers.openrouter).toEqual({
+      apiKey: 'sk-legacy',
+      model: 'legacy/model',
+    });
+    expect(migrated.defaults?.fitLevel).toBe(5);
+
+    // And the halves have been written to their new homes, keys still local.
+    expect(JSON.stringify(await rawSync())).toContain('legacy/model');
+    expect(JSON.stringify(await rawSync())).not.toContain('sk-legacy');
+
+    // A second read comes from the new layout and is unchanged.
+    expect(await getSettings()).toEqual(migrated);
+  });
+});
+
 describe('history storage', () => {
   it('keeps newest first', async () => {
     await addHistoryEntry(entry('1'));

@@ -1,12 +1,73 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import type { AppError } from '@/lib/errors';
 
-/** Field name set like a key in a source file — the panel's structural label. */
+/**
+ * The panel's section headings. Sentence case with real contrast, because a
+ * stack of uppercase letterspaced captions is unscannable — weight lives in the
+ * type, not in boxes around it. `meta` is the quiet right-hand slot for counts.
+ */
+export function SectionHeader({
+  children,
+  meta,
+}: {
+  children: ReactNode;
+  meta?: ReactNode;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <h3 className="font-mono text-[12.5px] font-semibold leading-tight text-ink">{children}</h3>
+      {meta && <span className="font-mono text-[10px] text-muted">{meta}</span>}
+    </div>
+  );
+}
+
+/** Micro-label, for machine-ish detail only — not for section titles. */
 export function Eyebrow({ children }: { children: ReactNode }) {
   return (
-    <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+    <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
       {children}
     </p>
+  );
+}
+
+/**
+ * A section that folds down to one row. The header keeps carrying the headline
+ * figure and a hint of what is hidden, so collapsing never buries the part the
+ * user most needs to see.
+ */
+export function Collapsible({
+  title,
+  headline,
+  hint,
+  open,
+  onToggle,
+  children,
+}: {
+  title: ReactNode;
+  headline?: ReactNode;
+  hint?: ReactNode;
+  open: boolean;
+  onToggle: (open: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-md border border-rule bg-paper-sunk">
+      <button
+        onClick={() => onToggle(!open)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left"
+      >
+        <span aria-hidden className="font-mono text-[10px] text-muted">
+          {open ? '▾' : '▸'}
+        </span>
+        <span className="font-mono text-[12.5px] font-semibold text-ink">{title}</span>
+        {headline && <span className="ml-auto">{headline}</span>}
+        {!open && hint && (
+          <span className="font-mono text-[10px] text-muted">{hint}</span>
+        )}
+      </button>
+      {open && <div className="space-y-3 px-3 pb-3">{children}</div>}
+    </section>
   );
 }
 
@@ -16,11 +77,11 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export function Button({ variant = 'primary', className = '', ...props }: ButtonProps) {
   const base =
-    'inline-flex items-center justify-center gap-1.5 rounded-sm px-3 py-1.5 font-mono text-xs ' +
+    'inline-flex items-center justify-center gap-1.5 rounded px-3 py-2 font-mono text-xs ' +
     'font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40';
   const variants = {
     primary: 'bg-ink text-paper hover:bg-proof',
-    secondary: 'border-2 border-rule bg-paper text-ink hover:border-proof hover:text-proof',
+    secondary: 'border border-rule bg-paper text-ink hover:border-proof hover:text-proof',
     ghost: 'text-muted hover:text-proof',
   } as const;
 
@@ -33,7 +94,7 @@ export function TextInput({
 }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className={`w-full rounded-sm border-2 border-rule bg-white px-2.5 py-1.5 font-mono text-xs
+      className={`w-full rounded border border-rule bg-white px-2.5 py-2 font-mono text-xs
         text-ink placeholder:text-muted/70 focus:border-proof focus:outline-none ${className}`}
       {...props}
     />
@@ -46,7 +107,7 @@ export function TextArea({
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
-      className={`w-full resize-y rounded-sm border-2 border-rule bg-white px-2.5 py-1.5 text-xs
+      className={`w-full resize-y rounded border border-rule bg-white px-2.5 py-2 text-xs
         leading-relaxed text-ink placeholder:text-muted/70 focus:border-proof focus:outline-none ${className}`}
       {...props}
     />
@@ -59,7 +120,7 @@ export function Chip({ children, tone = 'plain' }: { children: ReactNode; tone?:
     proof: 'border-proof/50 bg-proof-wash text-proof',
   } as const;
   return (
-    <span className={`rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-medium ${tones[tone]}`}>
+    <span className={`rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium ${tones[tone]}`}>
       {children}
     </span>
   );

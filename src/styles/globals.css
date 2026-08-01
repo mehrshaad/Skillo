@@ -50,6 +50,35 @@ body {
   outline-offset: 2px;
 }
 
+/*
+ * Tailwind v4's Preflight dropped the browser default `cursor: pointer` on
+ * buttons, which is why nothing clickable had one. Put it back once, here,
+ * rather than sprinkling a class on every control.
+ */
+button:not(:disabled),
+summary,
+a[href],
+label[for],
+[role='button']:not([aria-disabled='true']),
+[role='radio']:not(:disabled),
+[role='switch']:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+[role='radio']:disabled,
+[role='switch']:disabled {
+  cursor: not-allowed;
+}
+
+[draggable='true'] {
+  cursor: grab;
+}
+
+[draggable='true']:active {
+  cursor: grabbing;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

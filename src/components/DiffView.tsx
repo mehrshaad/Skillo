@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { buildDiff, diffStats } from '@/lib/diff';
-import { Eyebrow } from './ui';
+import { SectionHeader } from './ui';
 
 /**
  * Changed lines carry a proofreader's mark in the margin — the one place the
@@ -16,10 +16,10 @@ export function DiffView({ oldText, newText }: { oldText: string; newText: strin
 
   return (
     <div className="space-y-1.5">
-      <Eyebrow>
+      <SectionHeader>
         Diff · <span className="text-add">+{stats.added}</span>{' '}
         <span className="text-cut">−{stats.removed}</span> lines
-      </Eyebrow>
+      </SectionHeader>
 
       <div className="max-h-96 overflow-auto rounded-sm border border-rule bg-white">
         <table className="w-full border-collapse font-mono text-[11px] leading-snug">

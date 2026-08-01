@@ -1,6 +1,6 @@
 import { sendMessage } from '@/lib/messages';
 import type { JobProfile } from '@/lib/pipeline/types';
-import { Eyebrow } from './ui';
+import { SectionHeader } from './ui';
 
 /** The keyword lists the user can prune before tailoring runs on them. */
 const EDITABLE_LISTS: { key: keyof JobProfile; label: string }[] = [
@@ -22,9 +22,9 @@ export function JobProfileCard({ profile }: { profile: JobProfile }) {
   };
 
   return (
-    <div className="space-y-3">
-      <section className="space-y-1">
-        <Eyebrow>What this employer wants</Eyebrow>
+    <div className="space-y-4">
+      <section className="space-y-1.5">
+        <SectionHeader>What this employer wants</SectionHeader>
         <p className="text-xs leading-relaxed text-ink">{profile.summaryForTailoring}</p>
       </section>
 
@@ -33,9 +33,7 @@ export function JobProfileCard({ profile }: { profile: JobProfile }) {
         if (!Array.isArray(values) || values.length === 0) return null;
         return (
           <section key={key} className="space-y-1.5">
-            <Eyebrow>
-              {label} · {values.length}
-            </Eyebrow>
+            <SectionHeader meta={String(values.length)}>{label}</SectionHeader>
             <div className="flex flex-wrap gap-1">
               {values.map((value) => (
                 <button
@@ -54,8 +52,8 @@ export function JobProfileCard({ profile }: { profile: JobProfile }) {
       })}
 
       {profile.responsibilities.length > 0 && (
-        <section className="space-y-1">
-          <Eyebrow>Responsibilities</Eyebrow>
+        <section className="space-y-1.5">
+          <SectionHeader>Responsibilities</SectionHeader>
           <ul className="space-y-0.5 text-xs text-muted">
             {profile.responsibilities.map((r) => (
               <li key={r}>· {r}</li>

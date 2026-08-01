@@ -9,7 +9,7 @@ import {
   type ResumeSection,
   type SectionedResume,
 } from '@/lib/latexSections';
-import { Button, Eyebrow, TextArea, TextInput } from './ui';
+import { Button, SectionHeader, TextArea, TextInput } from './ui';
 
 /**
  * Reorder, rename, edit, add and remove the resume's sections before tailoring.
@@ -27,7 +27,9 @@ export function SectionEditor({
   onChange: (latex: string) => void;
 }) {
   const [doc, setDoc] = useState<SectionedResume | null>(() => parseSections(latex));
-  const [open, setOpen] = useState(false);
+  // Open by default: this is something to act on before generating, not a
+  // detail to go looking for.
+  const [open, setOpen] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [removed, setRemoved] = useState<{ section: ResumeSection; index: number } | null>(null);
   const [dragging, setDragging] = useState<number | null>(null);
@@ -93,11 +95,12 @@ export function SectionEditor({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <Eyebrow>
-          Sections · {doc.sections.length}
-          {edited ? ' · edited' : ''}
-        </Eyebrow>
-        <span className="font-mono text-xs text-muted">{open ? '−' : '+'}</span>
+        <SectionHeader meta={`${doc.sections.length}${edited ? ' · edited' : ''}`}>
+          Sections
+        </SectionHeader>
+        <span aria-hidden className="pl-2 font-mono text-xs text-muted">
+          {open ? '−' : '+'}
+        </span>
       </button>
 
       {open && (

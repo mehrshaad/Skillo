@@ -4,7 +4,8 @@ import { sendMessage } from '@/lib/messages';
 import type { WizardState } from '@/lib/state';
 import { DiffView } from './DiffView';
 import { MatchScoreCard } from './MatchScoreCard';
-import { Button, Chip, ErrorNote, Eyebrow, Note, Spinner, TextArea } from './ui';
+import { AtsScoreCard } from './AtsScoreCard';
+import { Button, Chip, ErrorNote, SectionHeader, Note, Spinner, TextArea } from './ui';
 
 const PAGE_POLL_ATTEMPTS = 7;
 const PAGE_POLL_INTERVAL_MS = 3_000;
@@ -49,7 +50,7 @@ function PageCheck({
 
   return (
     <section className="space-y-2">
-      <Eyebrow>Page count</Eyebrow>
+      <SectionHeader>Page count</SectionHeader>
 
       {!done && (
         <>
@@ -163,6 +164,9 @@ export function ReviewStep({ state }: { state: WizardState }) {
   return (
     <div className="space-y-4">
       {state.generation.match && <MatchScoreCard match={state.generation.match} />}
+      {state.generation.ats && (
+        <AtsScoreCard before={state.generation.ats.before} after={state.generation.ats.after} />
+      )}
 
       {result.validationErrors && result.validationErrors.length > 0 && (
         <Note>
@@ -179,7 +183,7 @@ export function ReviewStep({ state }: { state: WizardState }) {
       )}
 
       <section className="space-y-1.5">
-        <Eyebrow>What changed</Eyebrow>
+        <SectionHeader>What changed</SectionHeader>
         <div className="whitespace-pre-wrap rounded-sm bg-paper-sunk px-2.5 py-2 text-xs leading-relaxed">
           {result.changeSummary}
         </div>
@@ -214,7 +218,7 @@ export function ReviewStep({ state }: { state: WizardState }) {
 
       {showFeedback && (
         <section className="space-y-2">
-          <Eyebrow>What should be different?</Eyebrow>
+          <SectionHeader>What should be different?</SectionHeader>
           <TextArea
             rows={4}
             value={feedback}

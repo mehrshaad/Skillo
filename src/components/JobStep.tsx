@@ -4,7 +4,7 @@ import { sendMessage } from '@/lib/messages';
 import type { JobPosting } from '@/lib/jobIntake/types';
 import type { JobProfile } from '@/lib/pipeline/types';
 import { JobProfileCard } from './JobProfileCard';
-import { Button, Chip, ErrorNote, Eyebrow, Note, Spinner, TextArea, TextInput } from './ui';
+import { Button, Chip, ErrorNote, SectionHeader, Note, Spinner, TextArea, TextInput } from './ui';
 
 const SOURCE_LABELS: Record<JobPosting['source'], string> = {
   'guest-api': 'fetched from LinkedIn',
@@ -50,7 +50,7 @@ export function JobStep({
             <JobProfileCard profile={profile} />
           ) : (
             <>
-              <Eyebrow>Analysis</Eyebrow>
+              <SectionHeader>Analysis</SectionHeader>
               <p className="text-xs text-muted">
                 Skillo reads the posting and pulls out what to emphasize. You can prune the result
                 before it shapes the rewrite.
@@ -75,7 +75,7 @@ export function JobStep({
   return (
     <div className="space-y-4">
       <section className="space-y-2">
-        <Eyebrow>LinkedIn job link</Eyebrow>
+        <SectionHeader>LinkedIn job link</SectionHeader>
         <TextInput
           value={url}
           onChange={(e) => setUrl(e.target.value)}
@@ -118,7 +118,7 @@ export function JobStep({
           onClick={() => setManualOpen((v) => !v)}
           aria-expanded={manualOpen}
         >
-          <Eyebrow>Paste the description instead</Eyebrow>
+          <SectionHeader>Paste the description instead</SectionHeader>
           <span className="font-mono text-xs text-muted">{manualOpen ? '−' : '+'}</span>
         </button>
 
@@ -155,7 +155,7 @@ function JobCard({ job }: { job: JobPosting }) {
   return (
     <div className="space-y-3">
       <section className="space-y-1.5">
-        <Eyebrow>Job</Eyebrow>
+        <SectionHeader>Job</SectionHeader>
         <h2 className="font-mono text-[15px] font-semibold leading-snug text-ink">
           {job.title || 'Untitled posting'}
         </h2>
@@ -185,7 +185,7 @@ function JobCard({ job }: { job: JobPosting }) {
       )}
 
       <section className="space-y-1.5">
-        <Eyebrow>Description · {job.descriptionText.length.toLocaleString()} chars</Eyebrow>
+        <SectionHeader>Description · {job.descriptionText.length.toLocaleString()} chars</SectionHeader>
         <p className="max-h-32 overflow-y-auto whitespace-pre-wrap rounded-sm bg-paper-sunk px-2.5 py-2 text-xs text-muted">
           {shortDescription}
           {job.descriptionText.length > 260 ? '…' : ''}

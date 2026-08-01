@@ -3,7 +3,7 @@ import type { AppError } from '@/lib/errors';
 import { sendMessage } from '@/lib/messages';
 import { FIT_LEVEL_CAPTIONS, FIT_LEVEL_LABELS } from '@/lib/pipeline/prompts';
 import type { FitLevel, PageLimit, WizardState } from '@/lib/state';
-import { Button, ErrorNote, Eyebrow, LevelBar, Note, Spinner, TextArea, Toggle } from './ui';
+import { Button, ErrorNote, LevelBar, Note, SectionHeader, Spinner, TextArea, Toggle } from './ui';
 
 const PROGRESS_LABEL: Record<string, string> = {
   analyzing: 'Reading the job posting…',
@@ -29,12 +29,13 @@ export function TailorStep({ state }: { state: WizardState }) {
   return (
     <div className="space-y-5">
       <section className="space-y-2">
-        <div className="flex items-baseline justify-between">
-          <Eyebrow>How much to change</Eyebrow>
-          <span className="font-mono text-[11px] font-semibold text-proof">
-            {FIT_LEVEL_LABELS[state.fitLevel]}
-          </span>
-        </div>
+        <SectionHeader
+          meta={
+            <span className="font-semibold text-proof">{FIT_LEVEL_LABELS[state.fitLevel]}</span>
+          }
+        >
+          How much to change
+        </SectionHeader>
         <LevelBar
           value={state.fitLevel}
           stops={5}
@@ -47,12 +48,15 @@ export function TailorStep({ state }: { state: WizardState }) {
       </section>
 
       <section className="space-y-2">
-        <div className="flex items-baseline justify-between">
-          <Eyebrow>Page limit</Eyebrow>
-          <span className="font-mono text-[11px] font-semibold text-proof">
-            {state.pageLimit} {state.pageLimit === 1 ? 'page' : 'pages'}
-          </span>
-        </div>
+        <SectionHeader
+          meta={
+            <span className="font-semibold text-proof">
+              {state.pageLimit} {state.pageLimit === 1 ? 'page' : 'pages'}
+            </span>
+          }
+        >
+          Page limit
+        </SectionHeader>
         <LevelBar
           value={state.pageLimit}
           stops={3}
@@ -71,7 +75,7 @@ export function TailorStep({ state }: { state: WizardState }) {
       </section>
 
       <section className="space-y-2">
-        <Eyebrow>Anything to emphasize? (optional)</Eyebrow>
+        <SectionHeader meta="optional">Anything to emphasize?</SectionHeader>
         <TextArea
           rows={4}
           value={notes}

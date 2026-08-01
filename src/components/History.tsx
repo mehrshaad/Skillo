@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { clearHistory, getHistory, type HistoryEntry } from '@/lib/storage';
 import { DiffView } from './DiffView';
 import { MatchScoreCard } from './MatchScoreCard';
-import { Button, Chip, Eyebrow } from './ui';
+import { AtsScoreCard } from './AtsScoreCard';
+import { Button, Chip, SectionHeader } from './ui';
 
 export function History({ onClose }: { onClose: () => void }) {
   const [entries, setEntries] = useState<HistoryEntry[] | null>(null);
@@ -16,7 +17,7 @@ export function History({ onClose }: { onClose: () => void }) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Eyebrow>{new Date(open.timestamp).toLocaleString()}</Eyebrow>
+          <SectionHeader>{new Date(open.timestamp).toLocaleString()}</SectionHeader>
           <Button variant="ghost" onClick={() => setOpen(null)}>
             ← all runs
           </Button>
@@ -34,9 +35,10 @@ export function History({ onClose }: { onClose: () => void }) {
         </section>
 
         {open.match && <MatchScoreCard match={open.match} />}
+        {open.ats && <AtsScoreCard before={open.ats.before} after={open.ats.after} />}
 
         <section className="space-y-1.5">
-          <Eyebrow>What changed</Eyebrow>
+          <SectionHeader>What changed</SectionHeader>
           <div className="whitespace-pre-wrap rounded-sm bg-paper-sunk px-2.5 py-2 text-xs leading-relaxed">
             {open.changeSummary}
           </div>
@@ -57,7 +59,7 @@ export function History({ onClose }: { onClose: () => void }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Eyebrow>Past runs</Eyebrow>
+        <SectionHeader>Past runs</SectionHeader>
         <Button variant="ghost" onClick={onClose}>
           done
         </Button>

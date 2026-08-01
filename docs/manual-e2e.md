@@ -269,3 +269,32 @@ confirmed to carry no `key`, and to include the installers in both the unpacked 
       must pass their ID to the installer by hand
 - [ ] Note in PLAN.md section 12 whether the store accepted a manifest containing `key`
       (this build strips it either way)
+
+---
+
+# v3
+
+## W1 — Score band, ATS coverage, sync, collapsibles, headers
+
+Automated already: 27 tests for keyword matching (`CI/CD` ≡ `CI-CD` ≡ `CICD`, `Node.js` ≡
+`NodeJS`, `C++`/`C#` kept distinct from `C`, `Go` not matching inside `Google`, multi-word
+across a line break), LaTeX-to-text extraction including comments and preamble exclusion,
+weighting, and the storage split — including an assertion that an API key never appears
+anywhere in sync storage, and that a pre-split settings blob migrates without the user
+re-pasting keys.
+
+- [ ] Review shows **Match** first, then **ATS keywords**, both collapsed, each showing its
+      headline figure and a hint of what is hidden (`18 gaps`, `3 missing`)
+- [ ] Expanding one and reopening the panel keeps it expanded — and it stays expanded in a
+      second Chrome profile signed into the same Google account
+- [ ] The match score shows a band word (`low`, `moderate`, …) next to the number
+- [ ] ATS missing terms are ones genuinely absent from your resume — spot-check three
+- [ ] ATS coverage goes **up** after tailoring
+- [ ] Sections on step 2 are **open by default**
+- [ ] Every clickable thing shows a pointer cursor; disabled buttons show not-allowed; the
+      section drag handle shows grab
+- [ ] Section headings ("Soft skills", "ATS keywords", "What changed") read as headings —
+      dark, sentence case, scannable — not as tiny grey captions
+- [ ] **Keys did not have to be re-pasted** after this update (the migration ran)
+- [ ] On a second machine signed into the same Google account: provider, model, fit level,
+      page limit and fill toggle all arrive; the API key field is empty and asks once

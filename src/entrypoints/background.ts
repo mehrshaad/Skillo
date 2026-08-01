@@ -16,6 +16,8 @@ import { computePageBudget } from '@/lib/pipeline/pageBudget';
 import { analyzeJob } from '@/lib/pipeline/analyzeJob';
 import { regenerateResume, tailorResume } from '@/lib/pipeline/tailorResume';
 import { scoreMatch } from '@/lib/pipeline/scoreMatch';
+import { atsScore } from '@/lib/pipeline/atsScore';
+import { latexToPlainText } from '@/lib/latexText';
 import type { JobProfile, MatchScore, TailorResult } from '@/lib/pipeline/types';
 import { sendToTab, type OverleafDoc, type OverleafTabInfo } from '@/lib/messages';
 import type { WizardState } from '@/lib/state';
@@ -282,6 +284,12 @@ async function runGeneration(
       console.warn('[skillo] match scoring failed; continuing without a score', e);
     }
 
+    // Keyword coverage is counted locally, so it costs nothing and cannot fail
+    // the run. Both versions are scored so the delta is real.
+    const beforeAts = atsScore(profile, latexToPlainText(state.resume.latex));
+    const afterAts = atsScore(profile, latexToPlainText(result.latex));
+    const ats = beforeAts && afterAts ? { before: beforeAts, after: afterAts } : undefined;
+
     // Remember the controls so the next run starts where this one left off.
     await saveSettings({
       defaults: {
@@ -306,13 +314,14 @@ async function runGeneration(
       fitLevel: state.fitLevel,
       pageLimit: state.pageLimit,
       match,
+      ats,
     });
 
     return patchState({
       step: 'review',
       historyId,
       appliedAt: undefined,
-      generation: { status: 'done', runId, startedAt, result, match },
+      generation: { status: 'done', runId, startedAt, result, match, ats },
     });
   } catch (e) {
     const error = toAppError(e);

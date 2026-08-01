@@ -1,3 +1,4 @@
+import { stripLatexComments } from '@/lib/latexText';
 import { bodyChars, type PageBudget } from './pageBudget';
 
 export interface LatexValidation {
@@ -44,7 +45,7 @@ export function validateLatex(
 ): LatexValidation {
   const problems: string[] = [];
   const warnings: string[] = [];
-  const code = stripComments(latex);
+  const code = stripLatexComments(latex);
 
   if (!/\\begin\{document\}/.test(code)) {
     problems.push('The file is missing \\begin{document}.');
@@ -116,22 +117,6 @@ function checkPageBudget(latex: string, budget: PageBudget): string[] {
   }
 
   return problems;
-}
-
-/** Removes `%` comments, respecting the `\%` escape. */
-function stripComments(latex: string): string {
-  return latex
-    .split('\n')
-    .map((line) => {
-      for (let i = 0; i < line.length; i++) {
-        if (line[i] !== '%') continue;
-        let backslashes = 0;
-        for (let j = i - 1; j >= 0 && line[j] === '\\'; j--) backslashes++;
-        if (backslashes % 2 === 0) return line.slice(0, i);
-      }
-      return line;
-    })
-    .join('\n');
 }
 
 function findUnbalancedEnvironment(code: string): string | null {

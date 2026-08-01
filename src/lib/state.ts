@@ -2,6 +2,7 @@ import { browser, type Browser } from 'wxt/browser';
 import type { AppError } from './errors';
 import type { JobPosting } from './jobIntake/types';
 import type { JobProfile, MatchScore, TailorResult } from './pipeline/types';
+import type { AtsResult } from './pipeline/atsScore';
 
 export type WizardStep = 'job' | 'resume' | 'tailor' | 'review';
 
@@ -44,6 +45,8 @@ export interface GenerationState {
   result?: TailorResult;
   /** Absent when scoring failed or was skipped — never blocks a run. */
   match?: MatchScore;
+  /** Keyword coverage before and after, computed locally. */
+  ats?: { before: AtsResult; after: AtsResult };
 }
 
 /** 1 = change as little as possible, 5 = rewrite hard for this job. */

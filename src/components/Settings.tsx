@@ -6,7 +6,7 @@ import type { BridgeStatus } from '@/lib/providers/claudeCode';
 import { PROVIDER_META } from '@/lib/providers/registry';
 import { PROVIDER_IDS, type ModelInfo, type ProviderId } from '@/lib/providers/types';
 import { getSettings, saveSettings, type Settings as SettingsData } from '@/lib/storage';
-import { Button, Chip, ErrorNote, Eyebrow, Note, Spinner, TextInput } from './ui';
+import { Button, Chip, ErrorNote, SectionHeader, Note, Spinner, TextInput } from './ui';
 
 interface Installer {
   /** Literal path so WXT's typed getURL accepts it. */
@@ -40,14 +40,14 @@ export function Settings({ onClose }: { onClose: () => void }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Eyebrow>Settings</Eyebrow>
+        <SectionHeader>Settings</SectionHeader>
         <Button variant="ghost" onClick={onClose}>
           done
         </Button>
       </div>
 
       <section className="space-y-2">
-        <Eyebrow>Model provider</Eyebrow>
+        <SectionHeader>Model provider</SectionHeader>
         <div className="grid grid-cols-2 gap-1.5">
           {PROVIDER_IDS.map((id) => {
             const configured =
@@ -88,11 +88,22 @@ export function Settings({ onClose }: { onClose: () => void }) {
         />
       )}
 
-      <p className="border-t border-rule pt-3 text-xs text-muted">
-        Keys are stored unencrypted in Chrome's local extension storage on this machine, and are
-        sent only to the provider you selected. Your resume and the job text are sent to that
-        provider when you generate.
-      </p>
+      <div className="space-y-1.5 border-t border-rule pt-3 text-xs text-muted">
+        <p>
+          Your provider choice, model and generation settings sync to other Chrome profiles
+          signed in with this Google account.
+        </p>
+        <p>
+          <strong className="font-semibold text-ink">API keys stay on this machine</strong> and
+          are never synced — syncing would put them on Google's servers. A second machine asks
+          for them once.
+        </p>
+        <p>
+          Keys are stored unencrypted in Chrome's local extension storage, and are sent only to
+          the provider you selected. Your resume and the job text are sent to that provider when
+          you generate.
+        </p>
+      </div>
     </div>
   );
 }
@@ -161,7 +172,7 @@ function ClaudeCodeForm({
       </p>
 
       <section className="space-y-1.5">
-        <Eyebrow>Bridge status</Eyebrow>
+        <SectionHeader>Bridge status</SectionHeader>
         {ready ? (
           <div className="flex flex-wrap items-center gap-1">
             <Chip tone="proof">connected</Chip>
@@ -335,7 +346,7 @@ function ProviderForm({
   return (
     <div className="space-y-3">
       <section className="space-y-1.5">
-        <Eyebrow>API key</Eyebrow>
+        <SectionHeader>API key</SectionHeader>
         <TextInput
           type="password"
           value={apiKey}
@@ -362,7 +373,7 @@ function ProviderForm({
       </section>
 
       <section className="space-y-1.5">
-        <Eyebrow>Model</Eyebrow>
+        <SectionHeader>Model</SectionHeader>
         <TextInput
           value={model}
           onChange={(e) => {

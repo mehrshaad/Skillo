@@ -4,7 +4,7 @@ import { sendMessage, type OverleafTabInfo } from '@/lib/messages';
 import { LARGE_RESUME_CHARS, findIncludedFiles, looksLikeLatex } from '@/lib/resumeInput';
 import type { ResumeSource } from '@/lib/state';
 import { SectionEditor } from './SectionEditor';
-import { Button, Chip, ErrorNote, Eyebrow, Note, Spinner, TextArea } from './ui';
+import { Button, Chip, ErrorNote, SectionHeader, Note, Spinner, TextArea } from './ui';
 
 type Mode = 'overleaf' | 'paste' | 'upload';
 
@@ -73,7 +73,7 @@ export function ResumeStep({ resume }: { resume?: ResumeSource }) {
 
       {mode === 'overleaf' && (
         <section className="space-y-2">
-          <Eyebrow>Open Overleaf projects</Eyebrow>
+          <SectionHeader>Open Overleaf projects</SectionHeader>
           {tabs === null ? (
             <p className="text-xs text-muted">Looking for Overleaf tabs…</p>
           ) : tabs.length === 0 ? (
@@ -109,7 +109,7 @@ export function ResumeStep({ resume }: { resume?: ResumeSource }) {
 
       {mode === 'paste' && (
         <section className="space-y-2">
-          <Eyebrow>Paste your LaTeX resume</Eyebrow>
+          <SectionHeader>Paste your LaTeX resume</SectionHeader>
           <TextArea
             rows={10}
             value={pasted}
@@ -135,7 +135,7 @@ export function ResumeStep({ resume }: { resume?: ResumeSource }) {
 
       {mode === 'upload' && (
         <section className="space-y-2">
-          <Eyebrow>Upload a .tex file</Eyebrow>
+          <SectionHeader>Upload a .tex file</SectionHeader>
           <input
             type="file"
             accept=".tex,text/plain"
@@ -172,7 +172,7 @@ function ResumeCard({ resume }: { resume: ResumeSource }) {
   return (
     <div className="space-y-3">
       <section className="space-y-1.5">
-        <Eyebrow>Resume</Eyebrow>
+        <SectionHeader>Resume</SectionHeader>
         <p className="font-mono text-[15px] font-semibold">{resume.filename ?? 'untitled.tex'}</p>
         <div className="flex flex-wrap gap-1">
           <Chip>{resume.latex.length.toLocaleString()} chars</Chip>
