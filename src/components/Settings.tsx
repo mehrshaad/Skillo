@@ -8,6 +8,18 @@ import { PROVIDER_IDS, type ModelInfo, type ProviderId } from '@/lib/providers/t
 import { getSettings, saveSettings, type Settings as SettingsData } from '@/lib/storage';
 import { Button, Chip, ErrorNote, Eyebrow, Note, Spinner, TextInput } from './ui';
 
+interface Installer {
+  /** Literal path so WXT's typed getURL accepts it. */
+  path: '/bridge/skillo-bridge-setup.bat' | '/bridge/skillo-bridge-setup.sh';
+  name: string;
+}
+
+/** Generated at build time by scripts/build-bridge-installers.mjs. */
+const INSTALLERS = {
+  windows: { path: '/bridge/skillo-bridge-setup.bat', name: 'skillo-bridge-setup.bat' },
+  posix: { path: '/bridge/skillo-bridge-setup.sh', name: 'skillo-bridge-setup.sh' },
+} as const satisfies Record<string, Installer>;
+
 export function Settings({ onClose }: { onClose: () => void }) {
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [selected, setSelected] = useState<ProviderId>('openrouter');
@@ -97,19 +109,30 @@ function ClaudeCodeForm({
   const [status, setStatus] = useState<BridgeStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
+  const [copiedId, setCopiedId] = useState(false);
+
+  const onWindows = /win/i.test(navigator.userAgent);
+  const installer = onWindows ? INSTALLERS.windows : INSTALLERS.posix;
+  const other = onWindows ? INSTALLERS.posix : INSTALLERS.windows;
+  const ready = status?.installed && status.claudeFound;
 
   const refresh = async () => {
-    setBusy(true);
     const res = await sendMessage({ type: 'bridge/status' });
     if (res.ok) setStatus(res.data);
-    else setError(res.error);
-    setBusy(false);
+    return res.ok ? res.data : null;
   };
 
   useEffect(() => {
     void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Watch for the bridge appearing, so running the installer is the last step
+  // the user has to take — no going back to press a button.
+  useEffect(() => {
+    if (ready) return;
+    const timer = setInterval(() => void refresh(), 3_000);
+    return () => clearInterval(timer);
+  }, [ready]);
 
   const connect = async () => {
     setError(null);
@@ -130,8 +153,6 @@ function ClaudeCodeForm({
     await refresh();
   };
 
-  const ready = status?.installed && status.claudeFound;
-
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted">
@@ -141,9 +162,7 @@ function ClaudeCodeForm({
 
       <section className="space-y-1.5">
         <Eyebrow>Bridge status</Eyebrow>
-        {busy && !status ? (
-          <p className="text-xs text-muted">Checking…</p>
-        ) : ready ? (
+        {ready ? (
           <div className="flex flex-wrap items-center gap-1">
             <Chip tone="proof">connected</Chip>
             <Chip>host {status.version}</Chip>
@@ -152,22 +171,41 @@ function ClaudeCodeForm({
         ) : status?.installed ? (
           <Note>
             The bridge is running, but it cannot find the <code>claude</code> command. Install
-            Claude Code, or make sure <code>claude</code> is on your PATH, then re-check.
+            Claude Code, or make sure <code>claude</code> is on your PATH.
           </Note>
         ) : (
-          <Note>
-            Not connected. Run the installer in the extension's <code>bridge/</code> folder — see
-            <code> bridge/README.md</code> — then press Connect.
-          </Note>
+          <SetupSteps
+            installer={installer}
+            other={other}
+            onWindows={onWindows}
+            busy={busy}
+            onConnect={() => void connect()}
+          />
         )}
       </section>
 
-      <div className="flex gap-2">
-        <Button variant="secondary" disabled={busy} onClick={() => void connect()}>
-          {busy ? <Spinner /> : null}
-          {status?.installed ? 'Re-check' : 'Connect'}
-        </Button>
-      </div>
+      {!ready && (
+        <details className="text-xs text-muted">
+          <summary className="cursor-pointer">Installer says this extension isn't allowed?</summary>
+          <p className="mt-1">
+            Run it once with your extension id as the argument:
+            <br />
+            <code className="font-mono">
+              {installer.name} {browser.runtime.id}
+            </code>
+          </p>
+          <button
+            className="mt-1 font-mono underline hover:text-proof"
+            onClick={() => {
+              void navigator.clipboard.writeText(browser.runtime.id);
+              setCopiedId(true);
+              setTimeout(() => setCopiedId(false), 2000);
+            }}
+          >
+            {copiedId ? 'copied' : 'copy extension id'}
+          </button>
+        </details>
+      )}
 
       {error && <ErrorNote error={error} />}
 
@@ -182,6 +220,63 @@ function ClaudeCodeForm({
       >
         {isActive ? 'Claude Code is active' : 'Use Claude Code'}
       </Button>
+    </div>
+  );
+}
+
+/**
+ * Chrome's sandbox cannot register a native messaging host, so this is the
+ * shortest honest path: download one file, run it, done. The status above
+ * polls, so there is no "come back and press a button" step.
+ */
+function SetupSteps({
+  installer,
+  other,
+  onWindows,
+  busy,
+  onConnect,
+}: {
+  installer: Installer;
+  other: Installer;
+  onWindows: boolean;
+  busy: boolean;
+  onConnect: () => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <ol className="space-y-1.5 text-xs text-ink">
+        <li>
+          <span className="font-mono font-semibold text-proof">1</span>{' '}
+          <a
+            href={browser.runtime.getURL(installer.path)}
+            download={installer.name}
+            className="font-semibold text-proof underline"
+          >
+            Download {installer.name}
+          </a>
+          <span className="text-muted"> — needs Node.js and Claude Code installed.</span>
+        </li>
+        <li>
+          <span className="font-mono font-semibold text-proof">2</span>{' '}
+          {onWindows ? 'Double-click it.' : `Run it: bash ${installer.name}`}
+        </li>
+        <li>
+          <span className="font-mono font-semibold text-proof">3</span> Press Connect and approve
+          the permission. Restart Chrome first if it was already open.
+        </li>
+      </ol>
+
+      <Button variant="secondary" disabled={busy} onClick={onConnect}>
+        {busy ? <Spinner /> : null}
+        Connect
+      </Button>
+
+      <p className="text-xs text-muted">
+        On another machine?{' '}
+        <a href={browser.runtime.getURL(other.path)} download={other.name} className="underline">
+          {other.name}
+        </a>
+      </p>
     </div>
   );
 }

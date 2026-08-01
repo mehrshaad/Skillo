@@ -244,3 +244,28 @@ copy would wrongly block it.
       the stale-document warning
 - [ ] Load a resume whose template Skillo cannot slice (or a fragment) → the Sections
       block simply does not appear, and everything else still works
+
+## V5 — Distribution
+
+Already verified on this machine, outside Chrome: the generated
+`skillo-bridge-setup.bat` installs from a clean state (host, launcher, manifest, registry
+key), the embedded host is byte-identical to `bridge/host.mjs` (SHA-256 match), driving the
+installed launcher with real native-messaging framing returns a correct ping and a real
+completion, and `--uninstall` followed by a reinstall both work. The store build was
+confirmed to carry no `key`, and to include the installers in both the unpacked package and
+`zip:store`.
+
+- [ ] Settings → Claude Code shows the three numbered steps with a **Download** link
+- [ ] Clicking Download saves the installer (Chrome may warn about a `.bat` — that is
+      expected for any downloaded script)
+- [ ] Run the downloaded installer, restart Chrome, reopen Settings → the status flips to
+      **connected on its own**, without pressing anything
+- [ ] Generate a full resume revision with Claude Code active
+- [ ] Run `--uninstall`, restart Chrome, reopen Settings → back to the three steps
+- [ ] macOS or Linux, if you have one: the `.sh` installer does the same job
+- [ ] `npm run zip:store` produces a zip; upload it to the Web Store dashboard
+- [ ] **Record the assigned extension ID** in `scripts/build-bridge-installers.mjs`
+      (`STORE_EXTENSION_ID`), then `npm run bridge` and re-upload — until then, store users
+      must pass their ID to the installer by hand
+- [ ] Note in PLAN.md section 12 whether the store accepted a manifest containing `key`
+      (this build strips it either way)

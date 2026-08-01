@@ -456,6 +456,29 @@ article-class resume: 7288 body characters over 2 compiled pages = 3644/page. Th
 placeholder was ~14% low. Set to 3600 (rounded down, since overshooting a page limit is
 the more annoying failure). Only used when Overleaf cannot report a real page count.
 
+**G5 — The hand-written installers were deleted, not kept alongside the generated
+ones (contradicts §9).** The plan said `bridge/install.ps1` and `install.sh` stay for repo
+users while the generated one-file installers serve store users. That is two
+implementations of the same registry/manifest logic drifting apart. The generated
+installers strictly supersede them — they take the same extension-id argument and the same
+`--uninstall` — so the hand-written pair is gone and everyone runs the same file.
+
+**G6 — The Windows installer is a batch/PowerShell polyglot, not `-EncodedCommand`
+(contradicts §9's sketch).** The plan proposed a PowerShell one-liner inside the `.bat`.
+Two problems: escaping a large base64 payload through batch quoting is fragile, and
+`-EncodedCommand` is capped near 32k characters, which the embedded host would approach.
+Instead line one is batch that re-runs the *rest of the same file* through PowerShell —
+no escaping and no size limit. Two real bugs found by running it rather than reading it:
+`[scriptblock]::Create((...) -replace 'a','b')` passes **two** arguments because PowerShell
+reads the comma as an argument separator (needs its own parentheses), and the `.bat` must
+be written with CRLF endings.
+
+**G7 — Store builds go to `.output/chrome-mv3-store/`.** `wxt build --mode store` writes
+to a mode-suffixed directory, not the default one — reading `.output/chrome-mv3/manifest.json`
+after a store build shows the *dev* manifest and looks like the key strip failed. Verified
+the store manifest has no `key`, and that the bridge installers are included in the package
+and in `zip:store`.
+
 **G4 — Estimated budgets are validated far more loosely than calibrated ones
 (refinement of §5).** The plan specified flat validator tolerances. But when the budget
 comes from the fallback constant rather than this resume's real page count, a tight
