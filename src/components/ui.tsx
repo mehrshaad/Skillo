@@ -256,6 +256,18 @@ export function Toggle({
   );
 }
 
+/**
+ * Text that changes in place — "Apply" becoming "Applied". Keying on the string
+ * remounts it, so the swap animates instead of blinking.
+ */
+export function SwapText({ children }: { children: string }) {
+  return (
+    <span key={children} className="swap-in inline-block">
+      {children}
+    </span>
+  );
+}
+
 export function Spinner() {
   return (
     <span

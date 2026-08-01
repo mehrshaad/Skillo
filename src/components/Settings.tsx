@@ -6,7 +6,7 @@ import type { BridgeStatus } from '@/lib/providers/claudeCode';
 import { PROVIDER_META } from '@/lib/providers/registry';
 import { PROVIDER_IDS, type ModelInfo, type ProviderId } from '@/lib/providers/types';
 import { getSettings, saveSettings, type Settings as SettingsData } from '@/lib/storage';
-import { Button, Chip, ErrorNote, SectionHeader, Note, Spinner, TextInput } from './ui';
+import { Button, Chip, ErrorNote, Note, SectionHeader, Spinner, SwapText, TextInput } from './ui';
 
 interface Installer {
   /** Literal path so WXT's typed getURL accepts it. */
@@ -213,7 +213,7 @@ function ClaudeCodeForm({
               setTimeout(() => setCopiedId(false), 2000);
             }}
           >
-            {copiedId ? 'copied' : 'copy extension id'}
+            <SwapText>{copiedId ? 'copied' : 'copy extension id'}</SwapText>
           </button>
         </details>
       )}
@@ -229,7 +229,7 @@ function ClaudeCodeForm({
           })
         }
       >
-        {isActive ? 'Claude Code is active' : 'Use Claude Code'}
+        <SwapText>{isActive ? 'Claude Code is active' : 'Use Claude Code'}</SwapText>
       </Button>
     </div>
   );
@@ -442,7 +442,7 @@ function ProviderForm({
         disabled={!apiKey || !model || isActive}
         onClick={() => void onSave({ activeProviderId: providerId })}
       >
-        {isActive ? `${meta.label} is active` : `Use ${meta.label}`}
+        <SwapText>{isActive ? `${meta.label} is active` : `Use ${meta.label}`}</SwapText>
       </Button>
     </div>
   );

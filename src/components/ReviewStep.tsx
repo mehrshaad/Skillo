@@ -7,7 +7,9 @@ import { DiffView } from './DiffView';
 import { MatchScoreCard } from './MatchScoreCard';
 import { AtsScoreCard } from './AtsScoreCard';
 import { PageFillReport } from './PageFillReport';
-import { Button, Chip, ErrorNote, SectionHeader, Note, Spinner, TextArea } from './ui';
+import { ChangeSummary } from './ChangeSummary';
+import { Button, Chip, ErrorNote, Note, SectionHeader, Spinner, SwapText, TextArea } from './ui';
+import { applyRevision } from '@/lib/applyRevision';
 
 const PAGE_POLL_ATTEMPTS = 7;
 const PAGE_POLL_INTERVAL_MS = 3_000;
@@ -148,17 +150,9 @@ export function ReviewStep({ state }: { state: WizardState }) {
   const overleafTabId = resume.kind === 'overleaf' ? resume.tabId : undefined;
 
   const apply = async () => {
-    if (overleafTabId === undefined) return;
     setApplying(true);
     setError(null);
-    const res = await sendMessage({
-      type: 'overleaf/write',
-      tabId: overleafTabId,
-      content: result.latex,
-      // Guards against the Overleaf document changing, not against our own
-      // local edits to the working copy.
-      expectedCurrentHash: resume.overleafDocHash ?? '',
-    });
+    const res = await applyRevision(state);
     if (!res.ok) setError(res.error);
     setApplying(false);
   };
@@ -214,12 +208,7 @@ export function ReviewStep({ state }: { state: WizardState }) {
         </Note>
       )}
 
-      <section className="space-y-1.5">
-        <SectionHeader>What changed</SectionHeader>
-        <div className="whitespace-pre-wrap rounded-sm bg-paper-sunk px-2.5 py-2 text-xs leading-relaxed">
-          {result.changeSummary}
-        </div>
-      </section>
+      <ChangeSummary summary={result.changeSummary} />
 
       <PageProjection latex={result.latex} budget={state.generation.budget} />
 
@@ -259,7 +248,7 @@ export function ReviewStep({ state }: { state: WizardState }) {
         {overleafTabId !== undefined && (
           <Button disabled={applying || Boolean(state.appliedAt)} onClick={() => void apply()}>
             {applying ? <Spinner /> : null}
-            {state.appliedAt ? 'Applied' : 'Apply to Overleaf'}
+            <SwapText>{state.appliedAt ? 'Applied' : 'Apply to Overleaf'}</SwapText>
           </Button>
         )}
         <Button
@@ -270,7 +259,7 @@ export function ReviewStep({ state }: { state: WizardState }) {
             setTimeout(() => setCopied(false), 2000);
           }}
         >
-          {copied ? 'Copied' : 'Copy LaTeX'}
+          <SwapText>{copied ? 'Copied' : 'Copy LaTeX'}</SwapText>
         </Button>
         <Button variant="secondary" onClick={download}>
           Download .tex

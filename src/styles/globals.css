@@ -130,6 +130,22 @@ textarea,
   animation: skillo-panel-in 120ms ease-out;
 }
 
+@keyframes skillo-swap {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Label text that changes in place: Apply → Applied, Copy → Copied. */
+.swap-in {
+  animation: skillo-swap 140ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

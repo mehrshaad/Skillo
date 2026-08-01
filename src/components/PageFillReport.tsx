@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Button, SectionHeader, Spinner } from './ui';
+import { Button, SectionHeader, Spinner, SwapText } from './ui';
 
 const STEP = 0.1;
 const MIN = 0.2;
+/** Reporting range, deliberately wider than the page limit ever goes. */
+const MAX = 5;
 /** Close enough to the limit that there is nothing worth regenerating for. */
 const TOLERANCE = 0.1;
 
@@ -32,12 +34,11 @@ export function PageFillReport({
   onSubmit: (actualPages: number, action: 'none' | 'fill' | 'trim') => Promise<void>;
 }) {
   const [value, setValue] = useState(() =>
-    Math.max(MIN, Math.round(defaultValue * 10) / 10),
+    Math.min(MAX, Math.max(MIN, Math.round(defaultValue * 10) / 10)),
   );
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const max = Math.max((pageLimit ?? 2) + 1, 3);
   const target = pageLimit ?? 0;
   const short = actionable && value < target - TOLERANCE;
   const over = actionable && value > target + TOLERANCE;
@@ -49,7 +50,7 @@ export function PageFillReport({
       ? `Fill out to ${pages}`
       : action === 'trim'
         ? `Trim to ${pages}`
-        : 'Save this reading';
+        : 'Save this page count';
 
   const submit = async () => {
     setBusy(true);
@@ -61,19 +62,26 @@ export function PageFillReport({
 
   return (
     <section className="space-y-2">
-      <SectionHeader meta={pageLimit === undefined ? undefined : `limit ${pageLimit}`}>
+      <SectionHeader meta={pageLimit === undefined ? undefined : `you asked for ${pageLimit}`}>
         {title}
       </SectionHeader>
+
+      <p className="text-xs text-muted">
+        Look at the PDF in Overleaf and drag to how many pages it fills. A page with nothing
+        left blank is <span className="font-mono text-ink">1.0</span>; one with about a third
+        left blank is <span className="font-mono text-ink">0.7</span>; two pages where the
+        second is half empty is <span className="font-mono text-ink">1.5</span>.
+      </p>
 
       <div className="flex items-center gap-3">
         <input
           type="range"
           min={MIN}
-          max={max}
+          max={MAX}
           step={STEP}
           value={value}
           disabled={busy}
-          aria-label="Pages it actually came out as"
+          aria-label="Pages the compiled PDF fills"
           aria-valuetext={`${value.toFixed(1)} pages`}
           onChange={(e) => {
             setValue(Number(e.target.value));
@@ -81,20 +89,19 @@ export function PageFillReport({
           }}
           className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-rule accent-proof"
         />
-        <span className="w-16 shrink-0 text-right font-mono text-sm font-bold text-proof">
-          {value.toFixed(1)}
+        <span className="w-20 shrink-0 text-right font-mono text-sm font-bold text-proof">
+          <SwapText>{`${value.toFixed(1)} pg`}</SwapText>
         </span>
       </div>
 
       <div className="flex justify-between font-mono text-[10px] text-muted">
-        <span>{MIN}</span>
-        <span>drag to what you actually see</span>
-        <span>{max}</span>
+        <span>{MIN} pages</span>
+        <span>{MAX} pages</span>
       </div>
 
       <Button disabled={busy} onClick={() => void submit()}>
         {busy ? <Spinner /> : null}
-        {label}
+        <SwapText>{label}</SwapText>
       </Button>
 
       {saved && (

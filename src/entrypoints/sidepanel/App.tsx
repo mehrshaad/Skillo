@@ -8,7 +8,9 @@ import { TailorStep } from '@/components/TailorStep';
 import { ReviewStep } from '@/components/ReviewStep';
 import { Settings } from '@/components/Settings';
 import { History } from '@/components/History';
-import { Button } from '@/components/ui';
+import { Button, ErrorNote, Spinner, SwapText } from '@/components/ui';
+import { applyRevision, canApply } from '@/lib/applyRevision';
+import type { AppError } from '@/lib/errors';
 
 const STEPS: { id: WizardStep; label: string }[] = [
   { id: 'job', label: 'Job' },
@@ -35,6 +37,8 @@ export default function App() {
   const [state, setState] = useState<WizardState | null>(null);
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [overlay, setOverlay] = useState<null | 'settings' | 'history'>(null);
+  const [applying, setApplying] = useState(false);
+  const [applyError, setApplyError] = useState<AppError | null>(null);
 
   const refreshSettings = () => void getSettings().then(setSettings);
 
@@ -73,6 +77,15 @@ export default function App() {
   const activeIndex = STEPS.findIndex((s) => s.id === state.step);
   const next = STEPS[activeIndex + 1];
   const previous = STEPS[activeIndex - 1];
+  const onReview = state.step === 'review';
+
+  const applyNow = async () => {
+    setApplying(true);
+    setApplyError(null);
+    const res = await applyRevision(state);
+    if (!res.ok) setApplyError(res.error);
+    setApplying(false);
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -132,26 +145,47 @@ export default function App() {
         {state.step === 'review' && <ReviewStep state={state} />}
       </main>
 
-      <footer className="flex items-center justify-between border-t border-rule px-4 py-2">
-        <Button
-          variant="ghost"
-          disabled={!previous}
-          onClick={() => previous && goTo(previous.id)}
-        >
-          ← back
-        </Button>
-        <button
-          className="font-mono text-[10px] text-muted underline hover:text-cut"
-          onClick={() => void sendMessage({ type: 'state/reset' })}
-        >
-          start over
-        </button>
-        <Button
-          disabled={!next || !isReachable(next.id, state)}
-          onClick={() => next && goTo(next.id)}
-        >
-          continue →
-        </Button>
+      <footer className="border-t border-rule px-4 py-2">
+        {applyError && (
+          <div className="pb-2">
+            <ErrorNote error={applyError} />
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            disabled={!previous}
+            onClick={() => previous && goTo(previous.id)}
+          >
+            ← back
+          </Button>
+          <button
+            className="font-mono text-[10px] text-muted underline hover:text-cut"
+            onClick={() => void sendMessage({ type: 'state/reset' })}
+          >
+            start over
+          </button>
+
+          {/* The last step has nowhere to continue to; writing it back is the
+              action the user is actually there for. */}
+          {onReview ? (
+            <Button
+              disabled={!canApply(state) || applying || Boolean(state.appliedAt)}
+              onClick={() => void applyNow()}
+            >
+              {applying ? <Spinner /> : null}
+              <SwapText>{state.appliedAt ? 'applied' : 'apply →'}</SwapText>
+            </Button>
+          ) : (
+            <Button
+              disabled={!next || !isReachable(next.id, state)}
+              onClick={() => next && goTo(next.id)}
+            >
+              <SwapText>continue →</SwapText>
+            </Button>
+          )}
+        </div>
       </footer>
     </div>
   );
