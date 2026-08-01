@@ -83,7 +83,8 @@ const handlers: HandlerMap = {
       resume: {
         kind: 'overleaf',
         latex: doc.latex,
-        hash: doc.hash,
+        overleafDocHash: doc.hash,
+        locallyEdited: false,
         filename: doc.filename,
         tabId: msg.tabId,
         readAt: new Date().toISOString(),

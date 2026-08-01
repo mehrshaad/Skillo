@@ -1,0 +1,26 @@
+\documentclass[a4paper,10pt]{article}
+
+\usepackage{xcolor}
+\definecolor{accent}{HTML}{22688A}
+
+% Custom heading macro rather than \section
+\newcommand{\cvsection}[1]{%
+  \vspace{6pt}{\color{accent}\bf\large #1}\par\vspace{2pt}\hrule\vspace{4pt}%
+}
+
+\begin{document}
+
+{\LARGE Another Candidate} \\
+Berlin, DE
+
+\cvsection{Profile}
+Platform engineer focused on developer experience and \textbf{CI/CD} tooling.
+
+\cvsection{Work {History}}
+\textbf{Platform Engineer}, Example GmbH \\
+Owned the internal build system used by 60 engineers.
+
+\cvsection{Projects}
+\emph{opensource-thing} --- a scheduler used in production by three teams.
+
+\end{document}

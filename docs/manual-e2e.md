@@ -217,3 +217,30 @@ gaps, the retry, and that both resumes are sent labelled A and B.
 - [ ] The score is stored with the run and still shows when reopening it from history
 - [ ] Break scoring deliberately (revoke the API key right after the diff appears, or use
       a model that refuses) → the revision still appears, just without a score
+
+## V4 — Section editor
+
+Automated already: byte-identical round-trip on three structurally different templates
+(`\section`, `rSection` environments, a custom `\cvsection` macro), reorder/remove/rename/
+add/body-edit operations, the null cases (no document environment, fewer than two
+sections, mixed conventions, unbalanced title), and the write-guard interplay — including
+that a locally restructured working copy still applies, and that a hash of the working
+copy would wrongly block it.
+
+- [ ] With your real resume loaded, expand **Sections** — the list matches the real
+      sections in the right order
+- [ ] Drag a card to a new position → the order changes
+- [ ] Reorder using only the ▲/▼ buttons, no mouse → same result
+- [ ] Rename a section → the new name is what appears in the generated LaTeX later
+- [ ] Expand a section, edit its body, collapse → the edit sticks
+- [ ] Remove a section → **undo** restores it in its original position
+- [ ] **Add section**, then **reset to as-loaded** → back exactly as it was
+- [ ] Edit sections after generating → the old revision is cleared, because the diff
+      baseline moved
+- [ ] Generate after reordering → the output follows the new order
+- [ ] Apply after reordering, with the Overleaf document untouched → it applies. This is
+      the case the hash split exists for
+- [ ] Reorder locally, then also edit the document in Overleaf, then apply → refused with
+      the stale-document warning
+- [ ] Load a resume whose template Skillo cannot slice (or a fragment) → the Sections
+      block simply does not appear, and everything else still works

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ErrorCode, appError, type AppError } from '@/lib/errors';
-import { hashText } from '@/lib/hash';
 import { sendMessage, type OverleafTabInfo } from '@/lib/messages';
 import { LARGE_RESUME_CHARS, findIncludedFiles, looksLikeLatex } from '@/lib/resumeInput';
 import type { ResumeSource } from '@/lib/state';
+import { SectionEditor } from './SectionEditor';
 import { Button, Chip, ErrorNote, Eyebrow, Note, Spinner, TextArea } from './ui';
 
 type Mode = 'overleaf' | 'paste' | 'upload';
@@ -46,7 +46,6 @@ export function ResumeStep({ resume }: { resume?: ResumeSource }) {
         resume: {
           kind,
           latex,
-          hash: hashText(latex),
           filename,
           readAt: new Date().toISOString(),
         },
@@ -201,6 +200,20 @@ function ResumeCard({ resume }: { resume: ResumeSource }) {
           is sent to your model on every generation, so expect it to be slow and to cost more.
         </Note>
       )}
+
+      <SectionEditor
+        latex={resume.latex}
+        onChange={(latex) =>
+          void sendMessage({
+            type: 'state/update',
+            patch: {
+              resume: { ...resume, latex, locallyEdited: true },
+              // The diff baseline moved, so any existing revision is stale.
+              generation: { status: 'idle' },
+            },
+          })
+        }
+      />
 
       <Button
         variant="ghost"

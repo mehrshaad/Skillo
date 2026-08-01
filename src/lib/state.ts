@@ -15,8 +15,20 @@ export type GenerationStatus =
 
 export interface ResumeSource {
   kind: 'overleaf' | 'paste' | 'upload';
+  /**
+   * The working copy Skillo tailors. The section editor rewrites this, so it
+   * can differ from what is currently in Overleaf.
+   */
   latex: string;
-  hash: string;
+  /**
+   * Hash of the Overleaf document exactly as it was read. Only used by the
+   * apply guard, to answer "did the document change under us?" — deliberately
+   * NOT a hash of `latex`, or local restructuring would make apply refuse its
+   * own edit. Only set for kind === 'overleaf'.
+   */
+  overleafDocHash?: string;
+  /** True once the working copy has been edited locally since it was read. */
+  locallyEdited?: boolean;
   filename?: string;
   /** Set for kind === 'overleaf'; the tab the document was read from. */
   tabId?: number;

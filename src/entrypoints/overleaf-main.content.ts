@@ -7,6 +7,7 @@ import {
   type OverleafOp,
   type OverleafOpResult,
 } from '@/lib/overleaf/protocol';
+import { documentUnchanged } from '@/lib/overleaf/writeGuard';
 
 /**
  * Runs in the page's own JavaScript world, which is the only place the
@@ -70,7 +71,7 @@ function handle(payload: OverleafOp): OverleafOpResult {
   }
 
   const current = view.state.doc.toString();
-  if (hashText(current) !== payload.expectedCurrentHash) {
+  if (!documentUnchanged(current, payload.expectedCurrentHash)) {
     return {
       ok: false,
       error: appError(

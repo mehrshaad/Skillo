@@ -122,7 +122,9 @@ export function ReviewStep({ state }: { state: WizardState }) {
       type: 'overleaf/write',
       tabId: overleafTabId,
       content: result.latex,
-      expectedCurrentHash: resume.hash,
+      // Guards against the Overleaf document changing, not against our own
+      // local edits to the working copy.
+      expectedCurrentHash: resume.overleafDocHash ?? '',
     });
     if (!res.ok) setError(res.error);
     setApplying(false);
