@@ -32,7 +32,27 @@ Status key: `[ ]` not yet run · `[x]` passed · `[!]` failed (note underneath).
 
 ## M1 — Job intake
 
-*(to be filled in when the milestone lands)*
+Automated already: 38 unit tests, including the parser run against real saved responses
+for two live postings, and the strategy ladder with `fetch` mocked.
+
+- [ ] Paste `https://www.linkedin.com/jobs/view/4432351584` → the Job card shows
+      "Back-end Software Engineer", CtrlChain, Eindhoven, chips for Mid-Senior level and
+      Full-time, and the badge "fetched from LinkedIn"
+- [ ] The description preview is the actual posting, and the character count looks like a
+      full description (thousands, not hundreds)
+- [ ] Paste a job URL in the `?currentJobId=` form from a LinkedIn search page → same result
+- [ ] Paste a URL for a job that no longer exists → "LinkedIn says this job posting does
+      not exist", not a generic failure
+- [ ] Paste `https://example.com/jobs/1` → the error points you at manual paste, and the
+      paste box opens by itself
+- [ ] Open a job in a tab, then click **Use current tab** → a posting is captured. Expect
+      the "could not find LinkedIn's description markup" warning on signed-in pages: that
+      is the documented fallback (finding F2), not a bug. Confirm the excerpt shown is
+      recognisably the job
+- [ ] Paste a description manually with fewer than 300 characters → the button stays
+      disabled; with a real description → the Job card appears with the "pasted by you" badge
+- [ ] After a job is captured, closing and reopening the panel still shows it (session state)
+- [ ] **Use a different job** clears the card and returns to the input
 
 ## M2 — Providers and settings
 

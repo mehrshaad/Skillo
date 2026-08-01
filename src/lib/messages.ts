@@ -41,6 +41,9 @@ export interface MessageMap {
   'state/update': { req: { patch: Partial<WizardState> }; res: WizardState };
   'state/reset': { req: {}; res: WizardState };
 
+  // background -> offscreen document (service workers have no DOMParser)
+  'offscreen/parse': { req: { html: string }; res: ParsedJob | null };
+
   // background -> content script
   'job/extractFromDom': { req: {}; res: ParsedJob };
   'overleaf/csRead': { req: {}; res: OverleafDoc };

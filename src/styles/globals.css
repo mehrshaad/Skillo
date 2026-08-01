@@ -1,5 +1,33 @@
 @import 'tailwindcss';
 
+/*
+ * Skillo sits in a ~380px side panel next to Overleaf and LinkedIn, so it reads
+ * as a workbench rather than an app: paper stock, ink, and hairline rules.
+ * The artifact is LaTeX source, so the monospace face carries the hierarchy —
+ * headings, labels and field names are set in mono, prose in the UI sans.
+ * Proofreader's blue marks anything Skillo changed.
+ */
+@theme {
+  --color-paper: #faf9f6;
+  --color-paper-sunk: #f2f0ea;
+  --color-ink: #17161a;
+  --color-muted: #77736b;
+  --color-rule: #e4e0d8;
+
+  --color-proof: #2b7c9e;
+  --color-proof-wash: #ddeef6;
+
+  --color-add: #1f7a4d;
+  --color-add-wash: #e8f5ee;
+  --color-cut: #a3342f;
+  --color-cut-wash: #fbeae8;
+  --color-warn: #8a5a10;
+  --color-warn-wash: #fbf1de;
+
+  --font-sans: 'Segoe UI Variable Text', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Cascadia Code', 'Cascadia Mono', ui-monospace, Consolas, monospace;
+}
+
 html,
 body,
 #root {
@@ -8,4 +36,25 @@ body,
 
 body {
   margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One visible focus treatment everywhere, including keyboard-only navigation. */
+:focus-visible {
+  outline: 2px solid var(--color-proof);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -476,6 +476,49 @@ Onboarding empty-states, loading skeletons, error-message pass (every `code` has
 
 ---
 
+## 13a. Findings during execution (revisions to the plan above)
+
+Recorded as they are discovered. Where these contradict a decision in §3–§13, these win —
+they are grounded in observed behaviour, the sections above were written from expectation.
+
+**F1 — LinkedIn ships no JSON-LD (contradicts §6.2 step 1).** Checked on two live postings
+(4432351584, 4439304178) via both the jobs-guest API and the public page: zero
+`application/ld+json` blocks. The JSON-LD branch is still implemented and tested with
+synthetic fixtures, because it costs almost nothing and is the most stable shape when a
+posting does carry it — but nothing may depend on it. The `topcard__*` /
+`description__job-criteria-*` selectors are the real primary path.
+
+**F2 — The signed-in page is unscrapeable; the signed-out one is clean.** A credential-less
+fetch returns stable semantic markup. The same URL loaded in a real signed-in browser
+returns a React shell with hashed class names (`_26d811e2 f059b78b`), no data attributes,
+no embedded job JSON, and no description in the DOM at all. Consequences:
+- Background fetches use `credentials: 'omit'` deliberately — sending cookies makes the
+  result *worse*. This is load-bearing, not incidental; see `tryFetchAndParse`.
+- Strategy S1 got a twin, S1b: the public job page fetched the same way, parsed by the
+  same parser. Verified working on both fixtures.
+- Tab-based extraction (S2/S3) cannot rely on selectors and falls back to page text with
+  `lowConfidence: true`. Manual paste is the real floor, as planned.
+- Verified an extension `Origin` header does not change the response (description
+  byte-identical at 4927 chars across header combinations), so fetching from the
+  background worker is safe. A bogus job id returns a clean 404.
+
+**F3 — HTML parsing moved to an offscreen document (supersedes §6.2's "parse in the side
+panel").** MV3 service workers have no `DOMParser`. Parsing in the panel would split the
+pipeline across contexts and break whenever the panel is closed. `chrome.offscreen` with
+`reasons: ['DOM_PARSER']` is Chrome's sanctioned mechanism for exactly this, keeps
+orchestration in the background worker, and adds only the innocuous `offscreen`
+permission. One parser now serves every strategy.
+
+**F4 — WXT specifics.** `browser` comes from `wxt/browser` (typed via `@wxt-dev/browser`);
+there is no `@types/chrome` and the global `chrome` namespace is not typed. The Vitest
+plugin is at `wxt/testing/vitest-plugin`. `@wxt-dev/module-react` configures Vite but not
+`tsconfig`, so `jsx` is set in the root tsconfig.
+
+**F5 — Design direction.** The panel is styled as a workbench, not an app: warm paper,
+hairline rules, and monospace as the *display* face (headings, labels, job titles) since
+the artifact is LaTeX source. Proofreader's blue marks anything Skillo touched. Tokens
+live in `src/styles/globals.css`; light theme only for now, dark mode is a M6 candidate.
+
 ## 14. Instructions to the executing agent
 
 1. Work milestone-by-milestone (§12); finish each verification pass before proceeding. Keep a running checklist in `docs/manual-e2e.md`; manual checks that require the user (real keys, real Overleaf/LinkedIn accounts, bridge install) — stop and ask the user to perform them, listing exact steps.

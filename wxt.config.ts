@@ -19,7 +19,7 @@ export default defineConfig({
       'Tailor your Overleaf LaTeX resume to a job posting using your own LLM API key or local Claude Code.',
     key: DEV_PUBLIC_KEY,
     minimum_chrome_version: '116',
-    permissions: ['storage', 'sidePanel', 'scripting', 'tabs'],
+    permissions: ['storage', 'sidePanel', 'scripting', 'tabs', 'offscreen'],
     optional_permissions: ['nativeMessaging'],
     host_permissions: [
       'https://*.linkedin.com/*',
