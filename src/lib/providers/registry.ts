@@ -1,6 +1,7 @@
 import { ErrorCode, appError } from '@/lib/errors';
 import { getSettings, type Settings } from '@/lib/storage';
 import { createAnthropicProvider } from './anthropic';
+import { createClaudeCodeProvider } from './claudeCode';
 import { createOpenAICompatibleProvider } from './openaiCompatible';
 import type { LLMProvider, ProviderId } from './types';
 
@@ -50,10 +51,14 @@ export function buildProvider(id: ProviderId, settings: Settings): ResolvedProvi
   const meta = PROVIDER_META[id];
 
   if (id === 'claude-code') {
-    throw appError(
-      ErrorCode.NO_PROVIDER,
-      'The Claude Code bridge is not available yet in this build.',
-    );
+    if (!settings.providers.claudeCode?.enabled) {
+      throw appError(
+        ErrorCode.NO_PROVIDER,
+        'Turn on the Claude Code bridge in Settings first.',
+      );
+    }
+    // Claude Code picks its own model; the label is only for display.
+    return { provider: createClaudeCodeProvider(), model: 'claude-code', meta };
   }
 
   const config = settings.providers[id];

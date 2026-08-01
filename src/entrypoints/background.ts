@@ -10,6 +10,7 @@ import {
 } from '@/lib/jobIntake/fetchJob';
 import type { JobPosting } from '@/lib/jobIntake/types';
 import { buildProvider, getActiveProvider } from '@/lib/providers/registry';
+import { getBridgeStatus } from '@/lib/providers/claudeCode';
 import { addHistoryEntry, getSettings, updateHistoryEntry } from '@/lib/storage';
 import { analyzeJob } from '@/lib/pipeline/analyzeJob';
 import { regenerateResume, tailorResume } from '@/lib/pipeline/tailorResume';
@@ -37,6 +38,8 @@ const handlers: HandlerMap = {
   'job/fetch': async (msg) => acceptJob(await fetchJobFromUrl(msg.url)),
   'job/useActiveTab': async () => acceptJob(await extractFromActiveTab()),
   'job/manual': async (msg) => acceptJob(buildManualPosting(msg.url, msg.text)),
+
+  'bridge/status': async () => getBridgeStatus(),
 
   'provider/test': async (msg) => {
     const { provider } = buildProvider(msg.providerId, await getSettings());

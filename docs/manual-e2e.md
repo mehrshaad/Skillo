@@ -127,7 +127,24 @@ project**, not on your actual resume.
 
 ## M5 — Claude Code bridge
 
-*(to be filled in when the milestone lands)*
+Already verified on this machine, outside Chrome: the installer wrote the host, launcher,
+manifest and registry key; driving the installed `.bat` with real native-messaging framing
+returned a correct `ping` (host 0.1.0, `claude.exe` found) and a correct `complete`
+(system prompt honoured, text extracted). Unknown request types are rejected cleanly and
+two framed messages in one write are both handled. What remains needs Chrome itself.
+
+- [ ] Settings → Claude Code → **Connect** → Chrome asks for the native messaging
+      permission → after approving, the status reads *connected* with a host version
+- [ ] **Use Claude Code** makes it the active provider; the header shows `claude-code`
+- [ ] Analyze a job with Claude Code active → a profile comes back
+- [ ] Generate a full resume revision with Claude Code active → the diff looks sane
+- [ ] Deny the permission prompt → the error says the permission is needed, and Skillo
+      stays usable on the HTTP providers
+- [ ] Uninstall the host (`.\install.ps1 -Uninstall`), restart Chrome, press Re-check →
+      status returns to *not connected* with the installer instructions, and nothing hangs
+- [ ] Reinstall, then temporarily rename `claude.exe` and press Re-check → the status says
+      the bridge is running but cannot find `claude`, distinct from *not connected*
+- [ ] macOS or Linux, if you use one: `./install.sh` then the same connect flow
 
 ## M6 — Polish and docs
 

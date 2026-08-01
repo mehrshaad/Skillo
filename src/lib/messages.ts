@@ -4,6 +4,7 @@ import { ErrorCode, appError } from './errors';
 import type { JobPosting, ParsedJob } from './jobIntake/types';
 import type { WizardState } from './state';
 import type { ModelInfo, ProviderId } from './providers/types';
+import type { BridgeStatus } from './providers/claudeCode';
 
 export interface OverleafTabInfo {
   tabId: number;
@@ -36,6 +37,7 @@ export interface MessageMap {
   'pipeline/tailor': { req: { notes: string }; res: WizardState };
   'pipeline/regenerate': { req: { feedback: string }; res: WizardState };
   'provider/test': { req: { providerId: ProviderId }; res: { ok: true } };
+  'bridge/status': { req: {}; res: BridgeStatus };
   'provider/listModels': { req: { providerId: ProviderId }; res: ModelInfo[] };
   'state/get': { req: {}; res: WizardState };
   'state/update': { req: { patch: Partial<WizardState> }; res: WizardState };

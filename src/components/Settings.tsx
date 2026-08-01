@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { browser } from 'wxt/browser';
 import type { AppError } from '@/lib/errors';
 import { sendMessage } from '@/lib/messages';
+import type { BridgeStatus } from '@/lib/providers/claudeCode';
 import { PROVIDER_META } from '@/lib/providers/registry';
 import { PROVIDER_IDS, type ModelInfo, type ProviderId } from '@/lib/providers/types';
 import { getSettings, saveSettings, type Settings as SettingsData } from '@/lib/storage';
@@ -59,10 +61,11 @@ export function Settings({ onClose }: { onClose: () => void }) {
       </section>
 
       {selected === 'claude-code' ? (
-        <Note>
-          The Claude Code bridge runs Skillo's prompts through your local Claude Code install, so
-          it needs no API key. It ships in a later milestone.
-        </Note>
+        <ClaudeCodeForm
+          settings={settings}
+          onSave={update}
+          isActive={settings.activeProviderId === 'claude-code'}
+        />
       ) : (
         <ProviderForm
           key={selected}
@@ -78,6 +81,104 @@ export function Settings({ onClose }: { onClose: () => void }) {
         sent only to the provider you selected. Your resume and the job text are sent to that
         provider when you generate.
       </p>
+    </div>
+  );
+}
+
+function ClaudeCodeForm({
+  settings,
+  onSave,
+  isActive,
+}: {
+  settings: SettingsData;
+  onSave: (patch: Partial<SettingsData>) => Promise<void>;
+  isActive: boolean;
+}) {
+  const [status, setStatus] = useState<BridgeStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<AppError | null>(null);
+
+  const refresh = async () => {
+    setBusy(true);
+    const res = await sendMessage({ type: 'bridge/status' });
+    if (res.ok) setStatus(res.data);
+    else setError(res.error);
+    setBusy(false);
+  };
+
+  useEffect(() => {
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const connect = async () => {
+    setError(null);
+    setBusy(true);
+    // Must be called from a user gesture, so it lives here rather than in the worker.
+    const granted = await browser.permissions.request({ permissions: ['nativeMessaging'] });
+    setBusy(false);
+    if (!granted) {
+      setError({
+        code: 'PERMISSION_DENIED',
+        message: 'Skillo needs the native messaging permission to talk to Claude Code.',
+      } as AppError);
+      return;
+    }
+    await refresh();
+  };
+
+  const ready = status?.installed && status.claudeFound;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted">
+        Runs Skillo's prompts through the Claude Code already installed on this machine, using
+        your existing login. No API key, and nothing goes to a third-party provider.
+      </p>
+
+      <section className="space-y-1.5">
+        <Eyebrow>Bridge status</Eyebrow>
+        {busy && !status ? (
+          <p className="text-xs text-muted">Checking…</p>
+        ) : ready ? (
+          <div className="flex flex-wrap items-center gap-1">
+            <Chip tone="proof">connected</Chip>
+            <Chip>host {status.version}</Chip>
+            <Chip>claude found</Chip>
+          </div>
+        ) : status?.installed ? (
+          <Note>
+            The bridge is running, but it cannot find the <code>claude</code> command. Install
+            Claude Code, or make sure <code>claude</code> is on your PATH, then re-check.
+          </Note>
+        ) : (
+          <Note>
+            Not connected. Run the installer in the extension's <code>bridge/</code> folder — see
+            <code> bridge/README.md</code> — then press Connect.
+          </Note>
+        )}
+      </section>
+
+      <div className="flex gap-2">
+        <Button variant="secondary" disabled={busy} onClick={() => void connect()}>
+          {busy ? <Spinner /> : null}
+          {status?.installed ? 'Re-check' : 'Connect'}
+        </Button>
+      </div>
+
+      {error && <ErrorNote error={error} />}
+
+      <Button
+        disabled={!ready || isActive}
+        onClick={() =>
+          void onSave({
+            activeProviderId: 'claude-code',
+            providers: { ...settings.providers, claudeCode: { enabled: true } },
+          })
+        }
+      >
+        {isActive ? 'Claude Code is active' : 'Use Claude Code'}
+      </Button>
     </div>
   );
 }
