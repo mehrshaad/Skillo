@@ -9,29 +9,17 @@ import { ReviewStep } from '@/components/ReviewStep';
 import { Settings } from '@/components/Settings';
 import { History } from '@/components/History';
 import { Button, ErrorNote, Spinner, SwapText } from '@/components/ui';
-import { applyRevision, canApply } from '@/lib/applyRevision';
+import { applyRevision } from '@/lib/applyRevision';
+import { STEPS, footerAction, isReachable, type FooterAction } from '@/lib/wizardNav';
 import type { AppError } from '@/lib/errors';
 
-const STEPS: { id: WizardStep; label: string }[] = [
-  { id: 'job', label: 'Job' },
-  { id: 'resume', label: 'Resume' },
-  { id: 'tailor', label: 'Tailor' },
-  { id: 'review', label: 'Review' },
-];
-
-/** A step is reachable once the step before it has what it needs. */
-function isReachable(step: WizardStep, state: WizardState): boolean {
-  switch (step) {
-    case 'job':
-      return true;
-    case 'resume':
-      return Boolean(state.job);
-    case 'tailor':
-      return Boolean(state.job && state.resume);
-    case 'review':
-      return Boolean(state.generation.result);
-  }
-}
+/** Generating is still "continue" from the user's side: same button, same word. */
+const FOOTER_LABEL: Record<FooterAction, string> = {
+  apply: 'apply →',
+  applied: 'applied',
+  generate: 'continue →',
+  next: 'continue →',
+};
 
 export default function App() {
   const [state, setState] = useState<WizardState | null>(null);
@@ -39,6 +27,9 @@ export default function App() {
   const [overlay, setOverlay] = useState<null | 'settings' | 'history'>(null);
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState<AppError | null>(null);
+  /** Null until edited, so the draft falls through to whatever the last run used. */
+  const [notesDraft, setNotesDraft] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState<AppError | null>(null);
 
   const refreshSettings = () => void getSettings().then(setSettings);
 
@@ -77,7 +68,10 @@ export default function App() {
   const activeIndex = STEPS.findIndex((s) => s.id === state.step);
   const next = STEPS[activeIndex + 1];
   const previous = STEPS[activeIndex - 1];
-  const onReview = state.step === 'review';
+  const notes = notesDraft ?? state.notes;
+  const generating =
+    state.generation.status === 'analyzing' || state.generation.status === 'tailoring';
+  const footer = footerAction(state, { applying, generating });
 
   const applyNow = async () => {
     setApplying(true);
@@ -85,6 +79,19 @@ export default function App() {
     const res = await applyRevision(state);
     if (!res.ok) setApplyError(res.error);
     setApplying(false);
+  };
+
+  const generate = async () => {
+    setGenerateError(null);
+    const res = await sendMessage({ type: 'pipeline/tailor', notes });
+    if (!res.ok) setGenerateError(res.error);
+  };
+
+  const startOver = () => {
+    setNotesDraft(null);
+    setGenerateError(null);
+    setApplyError(null);
+    void sendMessage({ type: 'state/reset' });
   };
 
   return (
@@ -141,7 +148,15 @@ export default function App() {
           />
         )}
         {state.step === 'resume' && <ResumeStep resume={state.resume} />}
-        {state.step === 'tailor' && <TailorStep state={state} />}
+        {state.step === 'tailor' && (
+          <TailorStep
+            state={state}
+            notes={notes}
+            error={generateError}
+            onNotesChange={setNotesDraft}
+            onGenerate={() => void generate()}
+          />
+        )}
         {state.step === 'review' && <ReviewStep state={state} />}
       </main>
 
@@ -162,29 +177,22 @@ export default function App() {
           </Button>
           <button
             className="font-mono text-[10px] text-muted underline hover:text-cut"
-            onClick={() => void sendMessage({ type: 'state/reset' })}
+            onClick={startOver}
           >
             start over
           </button>
 
-          {/* The last step has nowhere to continue to; writing it back is the
-              action the user is actually there for. */}
-          {onReview ? (
-            <Button
-              disabled={!canApply(state) || applying || Boolean(state.appliedAt)}
-              onClick={() => void applyNow()}
-            >
-              {applying ? <Spinner /> : null}
-              <SwapText>{state.appliedAt ? 'applied' : 'apply →'}</SwapText>
-            </Button>
-          ) : (
-            <Button
-              disabled={!next || !isReachable(next.id, state)}
-              onClick={() => next && goTo(next.id)}
-            >
-              <SwapText>continue →</SwapText>
-            </Button>
-          )}
+          <Button
+            disabled={footer.disabled}
+            onClick={() => {
+              if (footer.action === 'apply') void applyNow();
+              else if (footer.action === 'generate') void generate();
+              else if (next) goTo(next.id);
+            }}
+          >
+            {(applying || (footer.action === 'generate' && generating)) && <Spinner />}
+            <SwapText>{FOOTER_LABEL[footer.action]}</SwapText>
+          </Button>
         </div>
       </footer>
     </div>

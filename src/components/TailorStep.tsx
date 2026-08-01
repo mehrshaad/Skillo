@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { AppError } from '@/lib/errors';
 import { sendMessage } from '@/lib/messages';
 import { FIT_LEVEL_CAPTIONS, FIT_LEVEL_LABELS } from '@/lib/pipeline/prompts';
@@ -11,20 +10,28 @@ const PROGRESS_LABEL: Record<string, string> = {
   validating: 'Checking the LaTeX…',
 };
 
-export function TailorStep({ state }: { state: WizardState }) {
-  const [notes, setNotes] = useState(state.notes);
-  const [error, setError] = useState<AppError | null>(null);
-
+/**
+ * The notes draft and the generate action are owned by App, because the footer's
+ * Continue triggers the same run from outside this component. Two buttons, one
+ * action, one copy of the notes — nothing to keep in sync.
+ */
+export function TailorStep({
+  state,
+  notes,
+  error,
+  onNotesChange,
+  onGenerate,
+}: {
+  state: WizardState;
+  notes: string;
+  error: AppError | null;
+  onNotesChange: (notes: string) => void;
+  onGenerate: () => void;
+}) {
   const running = state.generation.status === 'analyzing' || state.generation.status === 'tailoring';
 
   const patch = (p: Partial<WizardState>) =>
     void sendMessage({ type: 'state/update', patch: p });
-
-  const generate = async () => {
-    setError(null);
-    const res = await sendMessage({ type: 'pipeline/tailor', notes });
-    if (!res.ok) setError(res.error);
-  };
 
   return (
     <div className="space-y-5">
@@ -79,7 +86,7 @@ export function TailorStep({ state }: { state: WizardState }) {
         <TextArea
           rows={4}
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(e) => onNotesChange(e.target.value)}
           placeholder="e.g. lean on my Python work, I led the migration project, I'm relocating to Amsterdam"
           aria-label="Notes for tailoring"
           disabled={running}
@@ -97,7 +104,7 @@ export function TailorStep({ state }: { state: WizardState }) {
           {PROGRESS_LABEL[state.generation.status] ?? 'Working…'}
         </div>
       ) : (
-        <Button onClick={() => void generate()}>Generate tailored resume</Button>
+        <Button onClick={onGenerate}>Generate tailored resume</Button>
       )}
 
       {running && (
