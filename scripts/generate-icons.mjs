@@ -1,11 +1,15 @@
 /**
  * Generates the extension icons.
  *
- * The mark is two stacked bars on an ink plate: a short muted one above a
- * longer, heavier one in Skillo's proof blue — a resume line, strengthened.
- * Two solid shapes survive 16px far better than a thin check does. Written by
- * hand rather than pulled from a design tool so the icons regenerate from
- * source.
+ * The mark is a résumé page with a bolt cutting across its lower corner: the
+ * page says what Skillo works on, the bolt says it happens in one pass. Two
+ * shapes is the most that survives 16px, which is the size that actually
+ * matters — a toolbar icon is read at a glance or not at all. For the same
+ * reason the page carries two thick rules rather than three thin ones, which
+ * turn into a grey smear when they are two pixels apart.
+ *
+ * Everything is rasterised by supersampling hard-edged shape tests, so the
+ * antialiasing is uniform and no per-shape distance maths is needed.
  *
  *   node scripts/generate-icons.mjs
  */
@@ -20,16 +24,134 @@ const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'i
 const SIZES = [16, 32, 48, 128];
 
 const INK = [0x10, 0x10, 0x14];
+const PAPER = [0xf4, 0xf1, 0xea];
+const RULE = [0x9a, 0x94, 0x8a];
 const PROOF = [0x5a, 0xb4, 0xdc];
-const PAPER = [0xe8, 0xe4, 0xdb];
 
-/** Each bar: y centre, half-length either side of centre, half-thickness. */
-// Spacing is chosen so the gap survives 16px as a clear 2px band; verified by
-// decoding the generated PNG, not by eye.
-const BARS = [
-  { y: 0.35, halfLength: 0.2, halfThickness: 0.05, colour: PAPER },
-  { y: 0.625, halfLength: 0.31, halfThickness: 0.065, colour: PROOF },
+/** Samples per axis; 4 means 16 samples per output pixel. */
+const SUPERSAMPLE = 4;
+
+/* ------------------------------------------------------------------ shapes */
+
+/** Signed distance to a rounded rectangle, negative inside. */
+function roundedRect(px, py, cx, cy, halfW, halfH, radius) {
+  const qx = Math.abs(px - cx) - (halfW - radius);
+  const qy = Math.abs(py - cy) - (halfH - radius);
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius;
+}
+
+function distToSegment(px, py, ax, ay, bx, by) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+function inPolygon(px, py, points) {
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const [xi, yi] = points[i];
+    const [xj, yj] = points[j];
+    if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/** Distance to a polygon's outline, used to grow an even moat around it. */
+function distToPolygon(px, py, points) {
+  let best = Infinity;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    best = Math.min(
+      best,
+      distToSegment(px, py, points[j][0], points[j][1], points[i][0], points[i][1]),
+    );
+  }
+  return best;
+}
+
+/* ---------------------------------------------------------------- geometry */
+
+const PLATE = { cx: 0.5, cy: 0.5, half: 0.47, radius: 0.13 };
+/** Page pushed up-left, leaving the lower-right corner for the bolt. */
+const PAGE = { cx: 0.425, cy: 0.43, halfW: 0.205, halfH: 0.285, radius: 0.045 };
+
+const BOLT = [
+  [0.795, 0.505],
+  [0.575, 0.755],
+  [0.715, 0.76],
+  [0.6, 0.945],
+  [0.865, 0.665],
+  [0.725, 0.66],
 ];
+/** A moat of plate around the bolt, so it never merges into the page. */
+const BOLT_MOAT = 0.055;
+
+const LINES = [
+  { y: 0.26, x1: 0.272, x2: 0.57 },
+  { y: 0.395, x1: 0.272, x2: 0.47 },
+];
+const LINE_HALF_HEIGHT = 0.037;
+
+/** Colour at one sample point, or null where nothing is drawn. */
+function sampleAt(px, py) {
+  if (roundedRect(px, py, PLATE.cx, PLATE.cy, PLATE.half, PLATE.half, PLATE.radius) > 0) {
+    return null;
+  }
+
+  if (inPolygon(px, py, BOLT)) return PROOF;
+  if (distToPolygon(px, py, BOLT) <= BOLT_MOAT) return INK;
+
+  const onPage =
+    roundedRect(px, py, PAGE.cx, PAGE.cy, PAGE.halfW, PAGE.halfH, PAGE.radius) <= 0;
+  if (!onPage) return INK;
+
+  for (const line of LINES) {
+    if (px >= line.x1 && px <= line.x2 && Math.abs(py - line.y) <= LINE_HALF_HEIGHT) {
+      return RULE;
+    }
+  }
+
+  return PAPER;
+}
+
+function render(size) {
+  const pixels = Buffer.alloc(size * size * 4);
+  const step = 1 / (size * SUPERSAMPLE);
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let covered = 0;
+
+      for (let sy = 0; sy < SUPERSAMPLE; sy++) {
+        for (let sx = 0; sx < SUPERSAMPLE; sx++) {
+          const px = (x * SUPERSAMPLE + sx + 0.5) * step;
+          const py = (y * SUPERSAMPLE + sy + 0.5) * step;
+          const colour = sampleAt(px, py);
+          if (!colour) continue;
+          r += colour[0];
+          g += colour[1];
+          b += colour[2];
+          covered++;
+        }
+      }
+
+      const offset = (y * size + x) * 4;
+      const total = SUPERSAMPLE * SUPERSAMPLE;
+      if (covered > 0) {
+        pixels[offset] = Math.round(r / covered);
+        pixels[offset + 1] = Math.round(g / covered);
+        pixels[offset + 2] = Math.round(b / covered);
+        pixels[offset + 3] = Math.round((covered / total) * 255);
+      }
+    }
+  }
+
+  return pixels;
+}
 
 /* ------------------------------------------------------------- PNG writing */
 
@@ -60,7 +182,6 @@ function encodePng(size, pixels) {
   ihdr.writeUInt32BE(size, 4);
   ihdr[8] = 8; // bit depth
   ihdr[9] = 6; // colour type: RGBA
-  // 10-12: compression, filter, interlace — all 0
 
   // Each scanline is prefixed with filter type 0 (none).
   const raw = Buffer.alloc(size * (size * 4 + 1));
@@ -76,75 +197,6 @@ function encodePng(size, pixels) {
     chunk('IDAT', deflateSync(raw, { level: 9 })),
     chunk('IEND', Buffer.alloc(0)),
   ]);
-}
-
-/* ---------------------------------------------------------------- geometry */
-
-/** Distance from a point to a line segment, all in normalized units. */
-function distanceToSegment(px, py, ax, ay, bx, by) {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const lengthSq = dx * dx + dy * dy;
-  const t = lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSq));
-  const cx = ax + t * dx;
-  const cy = ay + t * dy;
-  return Math.hypot(px - cx, py - cy);
-}
-
-/** Signed distance to a rounded square, negative inside. */
-function roundedSquare(px, py, half, radius) {
-  const qx = Math.abs(px - 0.5) - (half - radius);
-  const qy = Math.abs(py - 0.5) - (half - radius);
-  return (
-    Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius
-  );
-}
-
-function mix(a, b, t) {
-  return a.map((channel, i) => Math.round(channel + (b[i] - channel) * t));
-}
-
-function render(size) {
-  const pixels = Buffer.alloc(size * size * 4);
-  // Antialias over roughly one pixel, expressed in normalized units.
-  const feather = 1 / size;
-
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      // Sample at pixel centres.
-      const px = (x + 0.5) / size;
-      const py = (y + 0.5) / size;
-
-      const plate = roundedSquare(px, py, 0.47, 0.12);
-      const plateAlpha = clamp01(0.5 - plate / feather);
-
-      // Paint the bars over the plate in order, so the lower one wins overlaps.
-      let colour = INK;
-      for (const bar of BARS) {
-        const distance = distanceToSegment(
-          px,
-          py,
-          0.5 - bar.halfLength,
-          bar.y,
-          0.5 + bar.halfLength,
-          bar.y,
-        );
-        colour = mix(colour, bar.colour, clamp01(0.5 + (bar.halfThickness - distance) / feather));
-      }
-
-      const offset = (y * size + x) * 4;
-      pixels[offset] = colour[0];
-      pixels[offset + 1] = colour[1];
-      pixels[offset + 2] = colour[2];
-      pixels[offset + 3] = Math.round(plateAlpha * 255);
-    }
-  }
-
-  return pixels;
-}
-
-function clamp01(value) {
-  return Math.max(0, Math.min(1, value));
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
