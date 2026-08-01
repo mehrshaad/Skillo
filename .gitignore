@@ -10,3 +10,7 @@ stats.html
 # builds from, so it has to be tracked.
 icon-options/
 scripts/generate-icon-options.mjs
+
+# Raw store captures hold a real resume and a real name. The framed versions in
+# store/ are reviewed before they go out; these never belong in a public repo.
+store/raw/
