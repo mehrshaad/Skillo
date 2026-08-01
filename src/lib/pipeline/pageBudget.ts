@@ -17,12 +17,30 @@ import type { DensityModel } from './density';
  */
 export const DEFAULT_CHARS_PER_PAGE = 3600;
 
+/**
+ * Where inside the learned interval to aim.
+ *
+ * The lower bound is what a page provably holds, but it is badly pessimistic
+ * when the document it came from ended on a half-empty page: a two-page resume
+ * whose second page is 40% full proves only `B/2` per page when the truth is
+ * nearer `B/1.4`. Aiming at the lower bound therefore asks for far less text
+ * than fits, which is what made revisions come out short and made "give me 30%
+ * more" impossible to honour.
+ *
+ * So aim into the interval instead. 0.4 sits just below the midpoint, which on
+ * the measured resume lands within ~1% of what actually fitted; filling pushes
+ * further up. Anything above the upper bound is known to spill, so we never go
+ * there.
+ */
+const AIM = { normal: 0.4, filling: 0.6 } as const;
+
 export interface PageBudget {
   pageLimit: number;
   fillLastPage: boolean;
+  /** Best estimate of what one page of this template holds. */
   charsPerPage: number;
   targetChars: number;
-  /** Where the page would actually spill, when the upper bound is known. */
+  /** Above this it is known to spill, when the upper bound is known. */
   ceilingChars: number | null;
   /** True once real compiled page counts back the numbers. */
   calibrated: boolean;
@@ -49,11 +67,17 @@ export function computePageBudget(
     };
   }
 
+  const aim = fillLastPage ? AIM.filling : AIM.normal;
+  const charsPerPage =
+    model.upper === null
+      ? model.lower
+      : Math.round(model.lower + (model.upper - model.lower) * aim);
+
   return {
     pageLimit,
     fillLastPage,
-    charsPerPage: model.lower,
-    targetChars: model.lower * pageLimit,
+    charsPerPage,
+    targetChars: charsPerPage * pageLimit,
     ceilingChars: model.upper === null ? null : model.upper * pageLimit,
     calibrated: true,
     samples: model.samples,

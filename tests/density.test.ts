@@ -112,48 +112,55 @@ describe('recording observations', () => {
   });
 });
 
-describe('the loop that stops overflow', () => {
-  const latex = doc('\\usepackage{geometry}', 7288);
+describe('budgeting from what was learned', () => {
+  const preamble = '\\usepackage{geometry}';
+  const latex = doc(preamble, 7288);
 
-  it('is guaranteed not to ask for more than a page holds', async () => {
+  it('asks for far more than the floor, because the floor is pessimistic', async () => {
+    // A two-page document whose second page is half empty only proves B/2 per
+    // page. Aiming there would ask for roughly half what actually fits.
     await recordObservation(latex, 2);
-    const model = (await getDensityModel(latex))!;
-    const budget = computePageBudget(2, false, model);
+    const budget = computePageBudget(1, false, (await getDensityModel(latex))!);
 
-    // The budget is built from the lower bound, so the requested amount is at
-    // most what two pages provably hold.
-    expect(budget.targetChars).toBeLessThanOrEqual(7288);
+    expect(budget.charsPerPage).toBeGreaterThan(3644);
+    expect(budget.charsPerPage).toBeLessThan(7288);
   });
 
-  it('rejects a revision that would overflow, with no grace', async () => {
+  it('does not reject a revision that might still fit', async () => {
     await recordObservation(latex, 2);
-    const budget = computePageBudget(2, false, (await getDensityModel(latex))!);
+    const budget = computePageBudget(1, false, (await getDensityModel(latex))!);
 
-    const oneCharOver = doc('\\usepackage{geometry}', budget.targetChars + 1);
-    expect(validateLatex(oneCharOver, 7288, budget).problems.join(' ')).toContain(
-      'will not fit',
-    );
+    // Above the target but below the size this template was seen to spill at:
+    // genuinely unknown, so it must not be failed. Rejecting here is what made
+    // revisions come back short.
+    const optimistic = doc(preamble, budget.targetChars + 500);
+    expect(validateLatex(optimistic, 7288, budget).problems).toEqual([]);
+  });
 
-    const exactlyAtBudget = doc('\\usepackage{geometry}', budget.targetChars);
-    expect(validateLatex(exactlyAtBudget, 7288, budget).problems).toEqual([]);
+  it('does reject a revision known to overflow', async () => {
+    await recordObservation(latex, 2);
+    const budget = computePageBudget(1, false, (await getDensityModel(latex))!);
+
+    const tooBig = doc(preamble, budget.ceilingChars! + 1);
+    expect(validateLatex(tooBig, 7288, budget).problems.join(' ')).toContain('will not fit');
   });
 
   it('tightens after a revision is observed to overflow', async () => {
     await recordObservation(latex, 2);
     const before = computePageBudget(2, false, (await getDensityModel(latex))!);
 
-    // The applied revision compiled to 3 pages: that is new information.
-    await recordObservation(doc('\\usepackage{geometry}', 7600), 3);
+    // The applied revision compiled to 3 pages: new information.
+    await recordObservation(doc(preamble, 7600), 3);
     const after = computePageBudget(2, false, (await getDensityModel(latex))!);
 
-    // The ceiling came down, so the next attempt is bounded more tightly.
     expect(after.ceilingChars!).toBeLessThan(before.ceilingChars!);
+    expect(after.charsPerPage).toBeLessThan(before.charsPerPage);
   });
 
-  it('explains itself using the evidence when it rejects', async () => {
+  it('cites the size it was seen to spill at when it rejects', async () => {
     await recordObservation(latex, 2);
     const budget = computePageBudget(1, false, (await getDensityModel(latex))!);
-    const problems = validateLatex(doc('\\usepackage{geometry}', 9000), 7288, budget).problems;
-    expect(problems.join(' ')).toContain('3644 characters on a page');
+    const problems = validateLatex(doc(preamble, 99000), 7288, budget).problems;
+    expect(problems.join(' ')).toContain('seen to spill past');
   });
 });

@@ -12,19 +12,12 @@ export interface LatexValidation {
 const MAX_LENGTH_DRIFT = 0.4;
 
 /**
- * Page tolerances.
- *
- * A calibrated budget is built from the *lower* bound of what a page of this
- * template holds, so exceeding it means exceeding the page limit. No grace is
- * given: the user asked for a limit, and a limit that is sometimes exceeded is
- * not a limit.
- *
- * An estimated budget rests on a constant that may be wrong for this template,
- * so it is checked only for gross failures — failing a good revision because a
- * guess was off is the worse outcome.
+ * Page tolerances. `over` is only used when no ceiling has been learned yet —
+ * once this template has been observed to spill at some size, that observed
+ * size is the bound, not a multiple of the target.
  */
 const PAGE_TOLERANCE = {
-  calibrated: { over: 1.0, underWhenFilling: 0.85, gutted: 0.5 },
+  calibrated: { over: 1.25, underWhenFilling: 0.85, gutted: 0.5 },
   estimated: { over: 1.45, underWhenFilling: 0.65, gutted: 0.4 },
 } as const;
 /** Templates do odd things with braces, so only a clear imbalance is a failure. */
@@ -106,9 +99,16 @@ function checkPageBudget(latex: string, budget: PageBudget): string[] {
   const tolerance = budget.calibrated ? PAGE_TOLERANCE.calibrated : PAGE_TOLERANCE.estimated;
   const pages = budget.pageLimit === 1 ? '1 page' : `${budget.pageLimit} pages`;
 
-  if (body > budget.targetChars * tolerance.over) {
+  // Reject only what is *known* to overflow. The ceiling is a size this
+  // template has actually been seen to spill at; between the target and the
+  // ceiling we genuinely do not know, and rejecting there would force the
+  // revision shorter than it needs to be — which is what made output come back
+  // half-empty. The compiled page check after applying is what settles it.
+  const ceiling = budget.ceilingChars ?? budget.targetChars * tolerance.over;
+
+  if (body > ceiling) {
     const evidence = budget.calibrated
-      ? ` Previous compiles of this template put ${budget.charsPerPage} characters on a page.`
+      ? ` This template has been seen to spill past ${Math.round(ceiling)} characters.`
       : '';
     problems.push(
       `At ${body} characters of content this will not fit ${pages} (budget ${budget.targetChars}).${evidence} Cut the least job-relevant material.`,

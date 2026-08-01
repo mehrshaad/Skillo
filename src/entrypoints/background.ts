@@ -12,6 +12,7 @@ import type { JobPosting } from '@/lib/jobIntake/types';
 import { buildProvider, getActiveProvider } from '@/lib/providers/registry';
 import { getBridgeStatus } from '@/lib/providers/claudeCode';
 import { addHistoryEntry, getSettings, saveSettings, updateHistoryEntry } from '@/lib/storage';
+import { hashText } from '@/lib/hash';
 import { computePageBudget } from '@/lib/pipeline/pageBudget';
 import { getDensityModel, recordObservation } from '@/lib/pipeline/density';
 import { analyzeJob } from '@/lib/pipeline/analyzeJob';
@@ -114,7 +115,24 @@ const handlers: HandlerMap = {
     if (!res.ok) throw res.error;
 
     const state = await getState();
-    await patchState({ appliedAt: new Date().toISOString() });
+
+    // The document now *is* what we just wrote, so that becomes the baseline:
+    // the next diff compares against it, regenerating builds on it, and the
+    // stale-document guard compares against it. Without this, a second apply
+    // always failed with OVERLEAF_DOC_CHANGED — the guard was still holding the
+    // hash of the document as it looked before the first apply.
+    await patchState({
+      appliedAt: new Date().toISOString(),
+      resume: state.resume
+        ? {
+            ...state.resume,
+            latex: msg.content,
+            overleafDocHash: hashText(msg.content),
+            locallyEdited: false,
+          }
+        : undefined,
+    });
+
     if (state.historyId) await updateHistoryEntry(state.historyId, { applied: true });
 
     return { applied: true } as const;

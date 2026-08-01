@@ -118,6 +118,10 @@ ${latex}`;
 export function buildRegenerateUserPrompt(feedback: string): string {
   return `Revise according to this feedback: ${feedback.trim()}
 
+Work from the revision you just produced — improve that, rather than starting again from the original resume.
+
+If the feedback asks for more or less content, change the amount of content accordingly. Treat it as overriding the earlier length guidance, but never the page limit: if the feedback cannot be honoured without going past the stated page limit, do as much as fits and say plainly in the CHANGES section what you could not do and why.
+
 Same rules, same output format, complete file.`;
 }
 

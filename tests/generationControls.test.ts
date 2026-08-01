@@ -97,12 +97,29 @@ describe('page budget', () => {
     expect(bodyChars('no document here')).toBe('no document here'.length);
   });
 
-  it('builds the budget from what the template has been shown to hold', () => {
-    const result = computePageBudget(2, false, { lower: 3644, upper: 4000, samples: 3 });
+  it('aims into the learned interval rather than at its pessimistic floor', () => {
+    const result = computePageBudget(2, false, { lower: 3600, upper: 4600, samples: 3 });
     expect(result.calibrated).toBe(true);
-    expect(result.charsPerPage).toBe(3644);
-    expect(result.targetChars).toBe(7288);
-    expect(result.ceilingChars).toBe(8000);
+    // 40% into [3600, 4600].
+    expect(result.charsPerPage).toBe(4000);
+    expect(result.targetChars).toBe(8000);
+    // The ceiling stays where the template was actually seen to spill.
+    expect(result.ceilingChars).toBe(9200);
+  });
+
+  it('aims higher when asked to fill the page', () => {
+    const model = { lower: 3600, upper: 4600, samples: 3 };
+    const normal = computePageBudget(2, false, model);
+    const filling = computePageBudget(2, true, model);
+
+    expect(filling.charsPerPage).toBeGreaterThan(normal.charsPerPage);
+    expect(filling.charsPerPage).toBeLessThan(model.upper);
+  });
+
+  it('falls back to the floor while no upper bound is known', () => {
+    const result = computePageBudget(1, false, { lower: 3600, upper: null, samples: 1 });
+    expect(result.charsPerPage).toBe(3600);
+    expect(result.ceilingChars).toBeNull();
   });
 
   it('estimates until something has been learned', () => {
@@ -132,9 +149,19 @@ describe('validateLatex with a page budget', () => {
     expect(validateLatex(doc(7000), 7000, budget()).problems).toEqual([]);
   });
 
-  it('rejects output that will overflow the page limit', () => {
-    const problems = validateLatex(doc(9000), 7000, budget()).problems;
+  it('rejects output well past the budget when no ceiling has been learned', () => {
+    const problems = validateLatex(doc(9500), 7000, budget()).problems;
     expect(problems.join(' ')).toContain('will not fit 2 pages');
+  });
+
+  it('uses a learned ceiling in preference to a multiple of the target', () => {
+    const learned = budget({ ceilingChars: 7500 });
+    // Between target and ceiling: unknown, so allowed.
+    expect(validateLatex(doc(7400), 7000, learned).problems).toEqual([]);
+    // Past the size this template was seen to spill at: rejected.
+    expect(validateLatex(doc(7600), 7000, learned).problems.join(' ')).toContain(
+      'seen to spill past',
+    );
   });
 
   it('rejects a half-empty last page only when filling was asked for', () => {
@@ -150,9 +177,9 @@ describe('validateLatex with a page budget', () => {
   });
 
   it('is more forgiving when the budget is only an estimate', () => {
-    const slightlyOver = doc(8500);
-    expect(validateLatex(slightlyOver, 7000, budget({ calibrated: true })).problems).toHaveLength(1);
-    expect(validateLatex(slightlyOver, 7000, budget({ calibrated: false })).problems).toEqual([]);
+    const over = doc(9500);
+    expect(validateLatex(over, 7000, budget({ calibrated: true })).problems).toHaveLength(1);
+    expect(validateLatex(over, 7000, budget({ calibrated: false })).problems).toEqual([]);
   });
 
   it('supersedes the generic drift rule', () => {
