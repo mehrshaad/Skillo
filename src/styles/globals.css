@@ -130,6 +130,30 @@ textarea,
   animation: skillo-panel-in 120ms ease-out;
 }
 
+/*
+ * A collapsing section, animated both ways. Height cannot be transitioned from
+ * `auto`, so the panel is a grid row that goes 0fr → 1fr instead; the content
+ * keeps its natural height and needs no measuring.
+ */
+.collapse-shell {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 160ms ease,
+    opacity 130ms ease;
+}
+
+.collapse-shell[data-open='true'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.collapse-shell > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
 @keyframes skillo-swap {
   from {
     opacity: 0;

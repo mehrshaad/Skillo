@@ -89,8 +89,10 @@ export function PageFillReport({
           }}
           className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-rule accent-proof"
         />
+        {/* Deliberately not a SwapText: this tracks the drag, and animating each
+            0.1 step makes the readout stutter instead of following the thumb. */}
         <span className="w-20 shrink-0 text-right font-mono text-sm font-bold text-proof">
-          <SwapText>{`${value.toFixed(1)} pg`}</SwapText>
+          {value.toFixed(1)} pg
         </span>
       </div>
 

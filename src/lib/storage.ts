@@ -21,6 +21,7 @@ export interface GenerationDefaults {
 export interface UiPrefs {
   matchExpanded?: boolean;
   atsExpanded?: boolean;
+  changesExpanded?: boolean;
 }
 
 export interface Settings {

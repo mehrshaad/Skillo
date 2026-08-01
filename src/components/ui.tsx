@@ -70,7 +70,13 @@ export function Collapsible({
           <span className="font-mono text-[10px] text-muted">{hint}</span>
         )}
       </button>
-      {open && <div className="panel-enter space-y-3 px-3 pb-3">{children}</div>}
+      {/* Kept mounted so closing animates too; `inert` keeps a collapsed panel
+          out of tab order and off screen readers. */}
+      <div className="collapse-shell" data-open={open} inert={!open}>
+        <div>
+          <div className="space-y-3 px-3 pb-3">{children}</div>
+        </div>
+      </div>
     </section>
   );
 }
