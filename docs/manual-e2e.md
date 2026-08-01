@@ -103,7 +103,27 @@ retry logic (format failure, validation failure, truncation).
 
 ## M4 — Apply, history, hardening
 
-*(to be filled in when the milestone lands)*
+The write path touches your real document. **Do this first on a throwaway Overleaf
+project**, not on your actual resume.
+
+- [ ] Generate against a scratch project, click **Apply to Overleaf** → the editor content
+      becomes the revised LaTeX
+- [ ] Reload the Overleaf project page → the change is still there (it synced to the server,
+      it was not just a local DOM edit)
+- [ ] Press Ctrl+Z **once** in Overleaf → the whole document reverts to the original
+- [ ] Recompile in Overleaf → the PDF builds
+- [ ] Stale-document guard: generate, then type something into the Overleaf document, then
+      click Apply → it refuses and explains the document changed. Click **Re-read the document
+      and re-diff** → the diff now compares against the edited document, and Apply works
+- [ ] Apply a second time without regenerating → the button reads "Applied" and is disabled
+- [ ] Now repeat the apply on your real resume project
+- [ ] History: the run appears with the job title, and is marked applied
+- [ ] Open a history entry → the diff and change summary are intact; Copy LaTeX works
+- [ ] Generate more than 20 times (or edit storage) → only the newest 20 are kept
+- [ ] Interrupted-run recovery: start a generation, then reload the extension from
+      `chrome://extensions` mid-run → reopening the panel shows "the last generation was
+      interrupted", not a spinner that never resolves
+- [ ] Press Generate twice quickly → the second press is refused with "already being generated"
 
 ## M5 — Claude Code bridge
 

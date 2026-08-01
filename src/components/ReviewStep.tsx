@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { AppError } from '@/lib/errors';
+import { ErrorCode, type AppError } from '@/lib/errors';
 import { sendMessage } from '@/lib/messages';
 import type { WizardState } from '@/lib/state';
 import { DiffView } from './DiffView';
@@ -10,6 +10,7 @@ export function ReviewStep({ state }: { state: WizardState }) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
   const [copied, setCopied] = useState(false);
+  const [applying, setApplying] = useState(false);
 
   const result = state.generation.result;
   const resume = state.resume;
@@ -18,6 +19,30 @@ export function ReviewStep({ state }: { state: WizardState }) {
   if (!result || !resume) {
     return <p className="text-xs text-muted">Nothing has been generated yet.</p>;
   }
+
+  const overleafTabId = resume.kind === 'overleaf' ? resume.tabId : undefined;
+
+  const apply = async () => {
+    if (overleafTabId === undefined) return;
+    setApplying(true);
+    setError(null);
+    const res = await sendMessage({
+      type: 'overleaf/write',
+      tabId: overleafTabId,
+      content: result.latex,
+      expectedCurrentHash: resume.hash,
+    });
+    if (!res.ok) setError(res.error);
+    setApplying(false);
+  };
+
+  const reReadDocument = async () => {
+    if (overleafTabId === undefined) return;
+    setApplying(true);
+    const res = await sendMessage({ type: 'overleaf/read', tabId: overleafTabId });
+    setError(res.ok ? null : res.error);
+    setApplying(false);
+  };
 
   const download = () => {
     const url = URL.createObjectURL(new Blob([result.latex], { type: 'text/x-tex' }));
@@ -65,6 +90,12 @@ export function ReviewStep({ state }: { state: WizardState }) {
       <DiffView oldText={resume.latex} newText={result.latex} />
 
       <section className="flex flex-wrap gap-2 border-t border-rule pt-3">
+        {overleafTabId !== undefined && (
+          <Button disabled={applying || Boolean(state.appliedAt)} onClick={() => void apply()}>
+            {applying ? <Spinner /> : null}
+            {state.appliedAt ? 'Applied' : 'Apply to Overleaf'}
+          </Button>
+        )}
         <Button
           variant="secondary"
           onClick={() => {
@@ -101,12 +132,28 @@ export function ReviewStep({ state }: { state: WizardState }) {
         </section>
       )}
 
-      <Note>
-        Applying straight into Overleaf lands in the next milestone. For now, copy or download the
-        LaTeX and paste it into your project.
-      </Note>
+      {state.appliedAt && (
+        <Note tone="proof">
+          Written into Overleaf. Recompile there to check the PDF — Ctrl+Z in the Overleaf editor
+          undoes it in one step.
+        </Note>
+      )}
+
+      {overleafTabId === undefined && (
+        <Note>
+          This resume did not come from an Overleaf tab, so Skillo cannot write it back. Copy or
+          download the LaTeX and paste it into your project.
+        </Note>
+      )}
 
       {error && <ErrorNote error={error} />}
+
+      {error?.code === ErrorCode.OVERLEAF_DOC_CHANGED && (
+        <Button variant="secondary" disabled={applying} onClick={() => void reReadDocument()}>
+          {applying ? <Spinner /> : null}
+          Re-read the document and re-diff
+        </Button>
+      )}
     </div>
   );
 }

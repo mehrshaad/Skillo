@@ -69,11 +69,37 @@ function handle(payload: OverleafOp): OverleafOpResult {
     };
   }
 
-  // Write lands in a later milestone; refuse clearly rather than half-doing it.
-  return {
-    ok: false,
-    error: appError(ErrorCode.OVERLEAF_WRITE_FAILED, 'Writing to Overleaf is not enabled yet.'),
-  };
+  const current = view.state.doc.toString();
+  if (hashText(current) !== payload.expectedCurrentHash) {
+    return {
+      ok: false,
+      error: appError(
+        ErrorCode.OVERLEAF_DOC_CHANGED,
+        'This document changed in Overleaf since Skillo read it.',
+        'Applying now would overwrite those edits. Re-read the document and review the diff again.',
+      ),
+    };
+  }
+
+  // Replacing the whole document in one transaction keeps it to a single undo
+  // step and lets Overleaf sync it exactly as it would a manual edit.
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: payload.content },
+  });
+
+  const after = view.state.doc.toString();
+  if (after !== payload.content) {
+    return {
+      ok: false,
+      error: appError(
+        ErrorCode.OVERLEAF_WRITE_FAILED,
+        'Overleaf did not accept the replacement.',
+        'The editor may be read-only or still loading. Reload the project and try again.',
+      ),
+    };
+  }
+
+  return { ok: true, data: { applied: true } };
 }
 
 export default defineContentScript({

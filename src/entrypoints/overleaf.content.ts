@@ -54,13 +54,31 @@ export default defineContentScript({
   matches: ['https://www.overleaf.com/project/*'],
   main() {
     browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-      const type = (msg as { type?: string })?.type;
-      if (type !== 'overleaf/csRead') return false;
+      const message = msg as {
+        type?: string;
+        content?: string;
+        expectedCurrentHash?: string;
+      };
 
-      callMainWorld({ op: 'read' })
-        .then((data) => sendResponse(ok(data as OverleafDoc)))
-        .catch((e: unknown) => sendResponse(fail(toAppError(e))));
-      return true;
+      if (message?.type === 'overleaf/csRead') {
+        callMainWorld({ op: 'read' })
+          .then((data) => sendResponse(ok(data as OverleafDoc)))
+          .catch((e: unknown) => sendResponse(fail(toAppError(e))));
+        return true;
+      }
+
+      if (message?.type === 'overleaf/csWrite') {
+        callMainWorld({
+          op: 'write',
+          content: message.content ?? '',
+          expectedCurrentHash: message.expectedCurrentHash ?? '',
+        })
+          .then(() => sendResponse(ok({ applied: true } as const)))
+          .catch((e: unknown) => sendResponse(fail(toAppError(e))));
+        return true;
+      }
+
+      return false;
     });
   },
 });

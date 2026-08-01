@@ -7,6 +7,7 @@ import { ResumeStep } from '@/components/ResumeStep';
 import { TailorStep } from '@/components/TailorStep';
 import { ReviewStep } from '@/components/ReviewStep';
 import { Settings } from '@/components/Settings';
+import { History } from '@/components/History';
 import { Button } from '@/components/ui';
 
 const STEPS: { id: WizardStep; label: string }[] = [
@@ -33,7 +34,7 @@ function isReachable(step: WizardStep, state: WizardState): boolean {
 export default function App() {
   const [state, setState] = useState<WizardState | null>(null);
   const [settings, setSettings] = useState<SettingsData | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
+  const [overlay, setOverlay] = useState<null | 'settings' | 'history'>(null);
 
   const refreshSettings = () => void getSettings().then(setSettings);
 
@@ -47,15 +48,23 @@ export default function App() {
 
   if (!state) return <div className="p-4 text-xs text-muted">Loading…</div>;
 
-  if (showSettings) {
+  if (overlay === 'settings') {
     return (
       <Shell>
         <Settings
           onClose={() => {
             refreshSettings();
-            setShowSettings(false);
+            setOverlay(null);
           }}
         />
+      </Shell>
+    );
+  }
+
+  if (overlay === 'history') {
+    return (
+      <Shell>
+        <History onClose={() => setOverlay(null)} />
       </Shell>
     );
   }
@@ -69,12 +78,20 @@ export default function App() {
     <div className="flex h-full flex-col">
       <header className="flex items-baseline justify-between border-b border-rule px-4 py-3">
         <h1 className="font-mono text-sm tracking-tight">skillo</h1>
-        <button
-          onClick={() => setShowSettings(true)}
-          className="font-mono text-[10px] text-muted underline hover:text-proof"
-        >
-          {settings?.activeProviderId ?? 'set up a model'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setOverlay('history')}
+            className="font-mono text-[10px] text-muted underline hover:text-proof"
+          >
+            history
+          </button>
+          <button
+            onClick={() => setOverlay('settings')}
+            className="font-mono text-[10px] text-muted underline hover:text-proof"
+          >
+            {settings?.activeProviderId ?? 'set up a model'}
+          </button>
+        </div>
       </header>
 
       <nav className="flex border-b border-rule" aria-label="Progress">

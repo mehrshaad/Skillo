@@ -10,7 +10,7 @@ import {
 } from '@/lib/jobIntake/fetchJob';
 import type { JobPosting } from '@/lib/jobIntake/types';
 import { buildProvider, getActiveProvider } from '@/lib/providers/registry';
-import { getSettings } from '@/lib/storage';
+import { addHistoryEntry, getSettings, updateHistoryEntry } from '@/lib/storage';
 import { analyzeJob } from '@/lib/pipeline/analyzeJob';
 import { regenerateResume, tailorResume } from '@/lib/pipeline/tailorResume';
 import type { JobProfile, TailorResult } from '@/lib/pipeline/types';
@@ -82,6 +82,23 @@ const handlers: HandlerMap = {
     return doc;
   },
 
+  'overleaf/write': async (msg) => {
+    const write = { type: 'overleaf/csWrite' as const, content: msg.content, expectedCurrentHash: msg.expectedCurrentHash };
+
+    let res = await sendToTab(msg.tabId, write);
+    if (!res.ok && res.error.code === ErrorCode.INTERNAL) {
+      // Probably no content script in that tab yet rather than a real failure.
+      if (await injectOverleafScripts(msg.tabId)) res = await sendToTab(msg.tabId, write);
+    }
+    if (!res.ok) throw res.error;
+
+    const state = await getState();
+    await patchState({ appliedAt: new Date().toISOString() });
+    if (state.historyId) await updateHistoryEntry(state.historyId, { applied: true });
+
+    return { applied: true } as const;
+  },
+
   'pipeline/tailor': async (msg) => runGeneration(msg.notes, null),
   'pipeline/regenerate': async (msg) => {
     const state = await getState();
@@ -129,10 +146,7 @@ async function acceptJob(job: JobPosting): Promise<JobPosting> {
  * extension was installed or reloaded has none. Inject on demand rather than
  * making the user reload.
  */
-async function readOverleafDoc(tabId: number): Promise<OverleafDoc> {
-  const first = await sendToTab(tabId, { type: 'overleaf/csRead' });
-  if (first.ok) return first.data;
-
+async function injectOverleafScripts(tabId: number): Promise<boolean> {
   try {
     await browser.scripting.executeScript({
       target: { tabId },
@@ -143,9 +157,16 @@ async function readOverleafDoc(tabId: number): Promise<OverleafDoc> {
       target: { tabId },
       files: ['/content-scripts/overleaf.js'],
     });
+    return true;
   } catch {
-    throw first.error; // injection failed; the original message is more useful
+    return false;
   }
+}
+
+async function readOverleafDoc(tabId: number): Promise<OverleafDoc> {
+  const first = await sendToTab(tabId, { type: 'overleaf/csRead' });
+  if (first.ok) return first.data;
+  if (!(await injectOverleafScripts(tabId))) throw first.error;
 
   const second = await sendToTab(tabId, { type: 'overleaf/csRead' });
   if (!second.ok) throw second.error;
@@ -181,7 +202,7 @@ async function runGeneration(
   const startedAt = new Date().toISOString();
 
   try {
-    const { provider, model } = await getActiveProvider();
+    const { provider, model, meta } = await getActiveProvider();
 
     // The profile is normally produced on the job step; analyze on demand if not.
     let profile: JobProfile | undefined = state.jobProfile;
@@ -198,8 +219,24 @@ async function runGeneration(
       ? await regenerateResume(input, asModelOutput(regeneration.previous), regeneration.feedback)
       : await tailorResume(input);
 
+    const historyId = crypto.randomUUID();
+    await addHistoryEntry({
+      id: historyId,
+      timestamp: new Date().toISOString(),
+      job: state.job,
+      jobProfile: profile,
+      originalLatex: state.resume.latex,
+      revisedLatex: result.latex,
+      changeSummary: result.changeSummary,
+      applied: false,
+      providerId: meta.id,
+      model,
+    });
+
     return patchState({
       step: 'review',
+      historyId,
+      appliedAt: undefined,
       generation: { status: 'done', runId, startedAt, result },
     });
   } catch (e) {
@@ -226,10 +263,33 @@ async function route(
   }
 }
 
+/**
+ * A generation lives inside this worker. If the worker was evicted mid-run the
+ * work is gone, so a status left at "running" on startup is stale, not live.
+ */
+async function recoverInterruptedRun(): Promise<void> {
+  const state = await getState();
+  if (state.generation.status !== 'analyzing' && state.generation.status !== 'tailoring') return;
+
+  await patchState({
+    generation: {
+      ...state.generation,
+      status: 'error',
+      error: appError(
+        ErrorCode.GENERATION_INTERRUPTED,
+        'The last generation was interrupted before it finished.',
+        'Chrome shut the extension down mid-run. Press Generate again.',
+      ),
+    },
+  });
+}
+
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener((details) => {
     console.info('[skillo] installed:', details.reason);
   });
+
+  void recoverInterruptedRun();
 
   // Clicking the toolbar icon opens the side panel. Chrome 116+.
   browser.sidePanel
