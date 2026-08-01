@@ -57,6 +57,22 @@ describe('buildTailorSystemPrompt', () => {
     expect(rules.size).toBe(1);
   });
 
+  it('carries the writing standard at every level, identically', () => {
+    // A truthful rewrite that reads like a machine wrote it still loses the
+    // interview, so this is not something the fit level gets to relax.
+    const blocks = new Set<string>();
+    for (let level = 1; level <= 5; level++) {
+      const prompt = buildTailorSystemPrompt(level, budget());
+      expect(prompt).toContain('WRITING QUALITY');
+      expect(prompt).toContain('spearheaded');
+      expect(prompt).toContain('Never append keyword lists');
+      blocks.add(
+        prompt.slice(prompt.indexOf('WRITING QUALITY'), prompt.indexOf('LENGTH AND PAGES')),
+      );
+    }
+    expect(blocks.size).toBe(1);
+  });
+
   it('always demands the delimiter output format', () => {
     for (let level = 1; level <= 5; level++) {
       const prompt = buildTailorSystemPrompt(level, budget());

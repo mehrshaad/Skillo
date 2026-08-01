@@ -1,15 +1,19 @@
 /**
  * Generates the extension icons.
  *
- * The mark is a résumé page with a bolt cutting across its lower corner: the
- * page says what Skillo works on, the bolt says it happens in one pass. Two
- * shapes is the most that survives 16px, which is the size that actually
- * matters — a toolbar icon is read at a glance or not at all. For the same
- * reason the page carries two thick rules rather than three thin ones, which
- * turn into a grey smear when they are two pixels apart.
+ * The mark is a bold S beside three skill bullets on a white rounded plate:
+ * the letter carries the name, the bullets say the subject is a resume. Two
+ * elements is the most that survives 16px, which is the size that actually
+ * matters — a toolbar icon is read at a glance or not at all.
  *
- * Everything is rasterised by supersampling hard-edged shape tests, so the
- * antialiasing is uniform and no per-shape distance maths is needed.
+ * The S is built from two elliptical annulus arcs rather than a font, since
+ * there is no text rasteriser here. Each bowl keeps a different horizontal and
+ * vertical thickness, which is what gives a bold S its stress; a uniform stroke
+ * reads as a ribbon.
+ *
+ * Geometry and palette were measured off the chosen concept tile, so the
+ * constants below are in that tile's normalized coordinates and `MARK_SCALE`
+ * enlarges the whole composition to use more of the plate.
  *
  *   node scripts/generate-icons.mjs
  */
@@ -23,13 +27,12 @@ import { fileURLToPath } from 'node:url';
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icon');
 const SIZES = [16, 32, 48, 128];
 
-const INK = [0x10, 0x10, 0x14];
-const PAPER = [0xf4, 0xf1, 0xea];
-const RULE = [0x9a, 0x94, 0x8a];
-const PROOF = [0x5a, 0xb4, 0xdc];
+const PLATE_FILL = [0xff, 0xff, 0xff];
+const NAVY = [0x10, 0x21, 0x3d];
+const TEAL = [0x2a, 0xc0, 0xb6];
 
-/** Samples per axis; 4 means 16 samples per output pixel. */
-const SUPERSAMPLE = 4;
+/** Samples per axis; 8 means 64 samples per output pixel. */
+const SUPERSAMPLE = 8;
 
 /* ------------------------------------------------------------------ shapes */
 
@@ -40,84 +43,110 @@ function roundedRect(px, py, cx, cy, halfW, halfH, radius) {
   return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius;
 }
 
-function distToSegment(px, py, ax, ay, bx, by) {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const lenSq = dx * dx + dy * dy;
-  const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
-  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+/** Angle in degrees, 0 = right, 90 = below, measured with y pointing down. */
+function angleAt(px, py, cx, cy) {
+  const deg = (Math.atan2(py - cy, px - cx) * 180) / Math.PI;
+  return deg < 0 ? deg + 360 : deg;
 }
 
-function inPolygon(px, py, points) {
-  let inside = false;
-  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-    const [xi, yi] = points[i];
-    const [xj, yj] = points[j];
-    if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
+function inSpan(angle, spans) {
+  return spans.some(([from, to]) => angle >= from && angle <= to);
 }
 
-/** Distance to a polygon's outline, used to grow an even moat around it. */
-function distToPolygon(px, py, points) {
-  let best = Infinity;
-  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-    best = Math.min(
-      best,
-      distToSegment(px, py, points[j][0], points[j][1], points[i][0], points[i][1]),
-    );
-  }
-  return best;
+/**
+ * One bowl of the S: the band between two concentric ellipses, cut down to the
+ * angular spans that the letter actually draws.
+ */
+function inBowl(px, py, bowl) {
+  const dx = (px - bowl.cx) / bowl.a;
+  const dy = (py - bowl.cy) / bowl.b;
+  if (dx * dx + dy * dy > 1) return false;
+
+  const ix = (px - bowl.cx) / bowl.ai;
+  const iy = (py - bowl.cy) / bowl.bi;
+  if (ix * ix + iy * iy < 1) return false;
+
+  return inSpan(angleAt(px, py, bowl.cx, bowl.cy), bowl.spans);
+}
+
+/** A horizontal bar with fully rounded ends. */
+function inBar(px, py, x1, x2, cy, halfH) {
+  return roundedRect(px, py, (x1 + x2) / 2, cy, (x2 - x1) / 2, halfH, halfH) <= 0;
 }
 
 /* ---------------------------------------------------------------- geometry */
 
-const PLATE = { cx: 0.5, cy: 0.5, half: 0.47, radius: 0.13 };
-/** Page pushed up-left, leaving the lower-right corner for the bolt. */
-const PAGE = { cx: 0.425, cy: 0.43, halfW: 0.205, halfH: 0.285, radius: 0.045 };
+const PLATE = { cx: 0.5, cy: 0.5, half: 0.485, radius: 0.15 };
 
-const BOLT = [
-  [0.795, 0.505],
-  [0.575, 0.755],
-  [0.715, 0.76],
-  [0.6, 0.945],
-  [0.865, 0.665],
-  [0.725, 0.66],
-];
-/** A moat of plate around the bolt, so it never merges into the page. */
-const BOLT_MOAT = 0.055;
+/** Enlarges the measured composition about its own centre to fill the plate. */
+const MARK_SCALE = 1.12;
+const MARK_CENTRE_Y = 0.479;
 
-const LINES = [
-  { y: 0.26, x1: 0.272, x2: 0.57 },
-  { y: 0.395, x1: 0.272, x2: 0.47 },
-];
-const LINE_HALF_HEIGHT = 0.037;
+const S_CX = 0.309;
+/**
+ * Outer semi-axes, then the counter's. The bowls are taller than half the
+ * letter on purpose: they have to overlap vertically or the waist meets at a
+ * single point and the S pinches in two.
+ */
+const BOWL = { a: 0.158, b: 0.132, ai: 0.07, bi: 0.075 };
+
+const UPPER = {
+  ...BOWL,
+  cx: S_CX,
+  cy: 0.382,
+  // Waist, up the left, over the top, out to the top-right terminal.
+  spans: [[90, 342]],
+};
+const LOWER = {
+  ...BOWL,
+  cx: S_CX,
+  cy: 0.5763,
+  // Waist, round the right, across the bottom, to the lower-left terminal.
+  spans: [
+    [270, 360],
+    [0, 162],
+  ],
+};
+
+const ROWS = [0.316, 0.4774, 0.6389];
+const DOT = { cx: 0.5938, r: 0.0399 };
+const BAR = { x1: 0.6806, x2: 0.8542, halfH: 0.0243 };
+
+/**
+ * Below this size the bullet dots land on less than a pixel and the rows blur
+ * into one pale block, so the small icon drops them, runs each bar back to
+ * where its dot was, and thickens it. Optical sizing, not a different mark.
+ */
+const SMALL_SIZE = 20;
+const SMALL = { scale: 1.22, x1: DOT.cx - DOT.r, halfH: 0.032 };
 
 /** Colour at one sample point, or null where nothing is drawn. */
-function sampleAt(px, py) {
+function sampleAt(px, py, small) {
   if (roundedRect(px, py, PLATE.cx, PLATE.cy, PLATE.half, PLATE.half, PLATE.radius) > 0) {
     return null;
   }
 
-  if (inPolygon(px, py, BOLT)) return PROOF;
-  if (distToPolygon(px, py, BOLT) <= BOLT_MOAT) return INK;
+  // Into the coordinates the constants above were measured in.
+  const scale = small ? SMALL.scale : MARK_SCALE;
+  const x = 0.5 + (px - 0.5) / scale;
+  const y = MARK_CENTRE_Y + (py - 0.5) / scale;
 
-  const onPage =
-    roundedRect(px, py, PAGE.cx, PAGE.cy, PAGE.halfW, PAGE.halfH, PAGE.radius) <= 0;
-  if (!onPage) return INK;
+  if (inBowl(x, y, UPPER) || inBowl(x, y, LOWER)) return NAVY;
 
-  for (const line of LINES) {
-    if (px >= line.x1 && px <= line.x2 && Math.abs(py - line.y) <= LINE_HALF_HEIGHT) {
-      return RULE;
-    }
+  const x1 = small ? SMALL.x1 : BAR.x1;
+  const halfH = small ? SMALL.halfH : BAR.halfH;
+  for (const cy of ROWS) {
+    if (!small && Math.hypot(x - DOT.cx, y - cy) <= DOT.r) return TEAL;
+    if (inBar(x, y, x1, BAR.x2, cy, halfH)) return TEAL;
   }
 
-  return PAPER;
+  return PLATE_FILL;
 }
 
 function render(size) {
   const pixels = Buffer.alloc(size * size * 4);
   const step = 1 / (size * SUPERSAMPLE);
+  const small = size <= SMALL_SIZE;
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -130,7 +159,7 @@ function render(size) {
         for (let sx = 0; sx < SUPERSAMPLE; sx++) {
           const px = (x * SUPERSAMPLE + sx + 0.5) * step;
           const py = (y * SUPERSAMPLE + sy + 0.5) * step;
-          const colour = sampleAt(px, py);
+          const colour = sampleAt(px, py, small);
           if (!colour) continue;
           r += colour[0];
           g += colour[1];

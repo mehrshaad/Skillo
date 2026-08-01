@@ -40,6 +40,22 @@ ABSOLUTE RULES — these apply no matter how much rewriting is asked for below:
 3. Output the COMPLETE file. Never truncate. Never write placeholders like "% rest unchanged".
 4. The output must be compilable LaTeX: every \\begin{x} matched by \\end{x}, braces balanced, special characters escaped as in the original.`;
 
+/**
+ * Every fit level gets this, because a truthful rewrite that reads like it came
+ * out of a machine still loses the interview. The banned words are the ones
+ * models reach for unprompted; naming them is what stops them, since "write
+ * naturally" on its own does nothing.
+ */
+const TAILOR_WRITING_STANDARD = `WRITING QUALITY — the result has to read as though a thoughtful person wrote it for this job:
+- Write in plain, specific English. A hiring manager should never be able to tell a model touched this resume.
+- Never use: spearheaded, leveraged, utilized, orchestrated, championed, pioneered, robust, seamless, cutting-edge, state-of-the-art, best-in-class, results-driven, detail-oriented, passionate, dynamic, synergy, holistic, myriad, plethora, tapestry, delve, underscore. Prefer the ordinary word: used, ran, built, led, cut, shipped.
+- Cut empty intensifiers. "Significantly improved" says nothing; either the original gives a number, in which case use it, or state what changed without the adverb.
+- One idea per bullet. Say what the candidate did, to what, and what came of it — in that order, in the past tense, without the three-verb chains ("designed, developed, and delivered") models fall into.
+- Vary sentence length and structure. A column of identically shaped bullets reads as generated.
+- Keep the candidate's own phrasing wherever it already works. This is an edit, not a rewrite from scratch, and their voice is an asset.
+- Weave the job's vocabulary into sentences that would have been written anyway. Never append keyword lists, never repeat a term to hit a count, and never write a sentence whose only purpose is to hold a keyword.
+- No self-praise adjectives about the candidate. Evidence does that work.`;
+
 /** Index 0 is unused so the array reads 1-5 like the UI does. */
 const FIT_LEVEL_BLOCKS: readonly string[] = [
   '',
@@ -95,6 +111,7 @@ export function buildTailorSystemPrompt(fitLevel: number, budget: PageBudget): s
   return [
     TAILOR_ABSOLUTE_RULES,
     `HOW MUCH TO CHANGE:\n${level}`,
+    TAILOR_WRITING_STANDARD,
     `LENGTH AND PAGES:\n${pageBlock(budget)}`,
     TAILOR_OUTPUT_FORMAT,
   ].join('\n\n');
