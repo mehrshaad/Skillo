@@ -9,6 +9,9 @@ import {
   fetchJobFromUrl,
 } from '@/lib/jobIntake/fetchJob';
 import type { JobPosting } from '@/lib/jobIntake/types';
+import { buildProvider, getActiveProvider } from '@/lib/providers/registry';
+import { getSettings } from '@/lib/storage';
+import { analyzeJob } from '@/lib/pipeline/analyzeJob';
 
 type Handler<K extends MessageType> = (
   msg: MessageOf<K>,
@@ -30,6 +33,40 @@ const handlers: HandlerMap = {
   'job/fetch': async (msg) => acceptJob(await fetchJobFromUrl(msg.url)),
   'job/useActiveTab': async () => acceptJob(await extractFromActiveTab()),
   'job/manual': async (msg) => acceptJob(buildManualPosting(msg.url, msg.text)),
+
+  'provider/test': async (msg) => {
+    const { provider } = buildProvider(msg.providerId, await getSettings());
+    await provider.test();
+    return { ok: true } as const;
+  },
+
+  'provider/listModels': async (msg) => {
+    const { provider, meta } = buildProvider(msg.providerId, await getSettings());
+    if (!provider.listModels) {
+      throw appError(
+        ErrorCode.PROVIDER_REQUEST_FAILED,
+        `${meta.label} does not publish a model list. Type the model id instead.`,
+      );
+    }
+    return provider.listModels();
+  },
+
+  'pipeline/analyze': async () => {
+    const state = await getState();
+    if (!state.job) {
+      throw appError(ErrorCode.INTERNAL, 'Capture a job posting first.');
+    }
+
+    await patchState({ generation: { status: 'analyzing', startedAt: new Date().toISOString() } });
+    try {
+      const { provider, model } = await getActiveProvider();
+      const jobProfile = await analyzeJob(provider, model, state.job);
+      return patchState({ jobProfile, generation: { status: 'idle' } });
+    } catch (e) {
+      await patchState({ generation: { status: 'error', error: toAppError(e) } });
+      throw e;
+    }
+  },
 };
 
 /**
@@ -42,7 +79,7 @@ async function acceptJob(job: JobPosting): Promise<JobPosting> {
     generation: { status: 'idle' },
     appliedAt: undefined,
     historyId: undefined,
-    step: 'resume',
+    step: 'job',
   });
   return job;
 }

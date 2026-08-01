@@ -56,7 +56,22 @@ for two live postings, and the strategy ladder with `fetch` mocked.
 
 ## M2 — Providers and settings
 
-*(to be filled in when the milestone lands)*
+Needs your own API keys. Automated already: request shaping per provider against a
+mocked `fetch`, error mapping, backoff, JSON extraction, and the analyze retry path.
+
+- [ ] Settings → OpenRouter → paste key → **Browse models** lists models → pick one →
+      **Test connection** reports "connection works"
+- [ ] Same for OpenAI
+- [ ] Same for Anthropic
+- [ ] Deliberately break a key (change one character) → **Test connection** says the provider
+      rejected the key, not a generic failure
+- [ ] Set a model id that does not exist → the error names the model, not the key
+- [ ] **Use <provider>** sets it active; the header shows the provider name; reopening the
+      panel still shows it
+- [ ] With a job captured, click **Analyze this job** → the profile card shows a summary plus
+      chips for must-have skills, tools, and ATS keywords
+- [ ] Click a chip → it disappears, and it stays gone after closing and reopening the panel
+- [ ] Analyze a job with no provider configured → the error tells you to open Settings
 
 ## M3 — Resume input, tailoring, review
 

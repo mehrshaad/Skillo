@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { sendMessage } from '@/lib/messages';
 import { onStateChange, type WizardState, type WizardStep } from '@/lib/state';
-import { getSettings, type Settings } from '@/lib/storage';
+import { getSettings, type Settings as SettingsData } from '@/lib/storage';
 import { JobStep } from '@/components/JobStep';
+import { Settings } from '@/components/Settings';
 import { Eyebrow } from '@/components/ui';
 
 const STEPS: { id: WizardStep; label: string }[] = [
@@ -14,27 +15,52 @@ const STEPS: { id: WizardStep; label: string }[] = [
 
 export default function App() {
   const [state, setState] = useState<WizardState | null>(null);
-  const [settings, setSettings] = useState<Settings | null>(null);
+  const [settings, setSettings] = useState<SettingsData | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const refreshSettings = () => void getSettings().then(setSettings);
 
   useEffect(() => {
     void sendMessage({ type: 'state/get' }).then((res) => {
       if (res.ok) setState(res.data);
     });
-    void getSettings().then(setSettings);
+    refreshSettings();
     return onStateChange(setState);
   }, []);
 
   if (!state) return <div className="p-4 text-xs text-muted">Loading…</div>;
 
   const activeIndex = STEPS.findIndex((s) => s.id === state.step);
+  const analyzing = state.generation.status === 'analyzing';
+
+  if (showSettings) {
+    return (
+      <div className="flex h-full flex-col">
+        <header className="border-b border-rule px-4 py-3">
+          <h1 className="font-mono text-sm tracking-tight">skillo</h1>
+        </header>
+        <main className="flex-1 overflow-y-auto px-4 py-4">
+          <Settings
+            onClose={() => {
+              refreshSettings();
+              setShowSettings(false);
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-baseline justify-between border-b border-rule px-4 py-3">
         <h1 className="font-mono text-sm tracking-tight">skillo</h1>
-        <span className="font-mono text-[10px] text-muted">
-          {settings?.activeProviderId ?? 'no model configured'}
-        </span>
+        <button
+          onClick={() => setShowSettings(true)}
+          className="font-mono text-[10px] text-muted underline hover:text-proof"
+        >
+          {settings?.activeProviderId ?? 'set up a model'}
+        </button>
       </header>
 
       <nav className="flex border-b border-rule" aria-label="Progress">
@@ -62,7 +88,9 @@ export default function App() {
       </nav>
 
       <main className="flex-1 overflow-y-auto px-4 py-4">
-        {state.step === 'job' && <JobStep job={state.job} />}
+        {state.step === 'job' && (
+          <JobStep job={state.job} profile={state.jobProfile} analyzing={analyzing} />
+        )}
         {state.step !== 'job' && <Placeholder step={state.step} />}
       </main>
     </div>

@@ -6,11 +6,15 @@ export interface ChatMessage {
   content: string;
 }
 
+/**
+ * No `temperature`: current Anthropic models reject it with a 400, and the user
+ * may point any provider at any model, so the safe request is the one that
+ * omits it. Model defaults are fine for both pipeline stages.
+ */
 export interface CompletionRequest {
   messages: ChatMessage[];
   model: string;
   maxTokens: number;
-  temperature: number;
 }
 
 export interface CompletionResponse {

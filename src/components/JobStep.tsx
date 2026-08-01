@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { AppError } from '@/lib/errors';
 import { sendMessage } from '@/lib/messages';
 import type { JobPosting } from '@/lib/jobIntake/types';
+import type { JobProfile } from '@/lib/pipeline/types';
+import { JobProfileCard } from './JobProfileCard';
 import { Button, Chip, ErrorNote, Eyebrow, Note, Spinner, TextArea, TextInput } from './ui';
 
 const SOURCE_LABELS: Record<JobPosting['source'], string> = {
@@ -11,7 +13,15 @@ const SOURCE_LABELS: Record<JobPosting['source'], string> = {
   manual: 'pasted by you',
 };
 
-export function JobStep({ job }: { job?: JobPosting }) {
+export function JobStep({
+  job,
+  profile,
+  analyzing,
+}: {
+  job?: JobPosting;
+  profile?: JobProfile;
+  analyzing: boolean;
+}) {
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState<null | string>(null);
   const [error, setError] = useState<AppError | null>(null);
@@ -30,7 +40,37 @@ export function JobStep({ job }: { job?: JobPosting }) {
     setBusy(null);
   };
 
-  if (job) return <JobCard job={job} />;
+  if (job) {
+    return (
+      <div className="space-y-4">
+        <JobCard job={job} />
+
+        <section className="space-y-2 border-t border-rule pt-3">
+          {profile ? (
+            <JobProfileCard profile={profile} />
+          ) : (
+            <>
+              <Eyebrow>Analysis</Eyebrow>
+              <p className="text-xs text-muted">
+                Skillo reads the posting and pulls out what to emphasize. You can prune the result
+                before it shapes the rewrite.
+              </p>
+              <Button
+                disabled={analyzing || busy !== null}
+                onClick={() =>
+                  void run('analyze', () => sendMessage({ type: 'pipeline/analyze' }))
+                }
+              >
+                {analyzing || busy === 'analyze' ? <Spinner /> : null}
+                Analyze this job
+              </Button>
+            </>
+          )}
+          {error && <ErrorNote error={error} />}
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
