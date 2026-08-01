@@ -34,31 +34,35 @@ WHITE = (255, 255, 255)
 # and the shopper actually read, so it says what the shot shows, not "feature 1".
 CAPTIONS = {
     "job": (
-        "Reads the job posting",
-        "Paste a LinkedIn link. Skillo pulls the posting and breaks it into the\n"
-        "skills, tools and keywords the employer is actually screening for.",
+        "It reads the job first",
+        "Give it a LinkedIn link. Skillo pulls the posting and breaks out the\n"
+        "skills, tools and keywords this employer is actually screening for.",
+    ),
+    "resume": (
+        "Straight from your Overleaf project",
+        "It reads the LaTeX of whichever file you have open, and writes the\n"
+        "revision back into the same project when you are happy with it.",
     ),
     "tailor": (
-        "You choose how far it goes",
-        "Five levels, from a light reorder to a rewrite for this one job — and a\n"
+        "You decide how far it goes",
+        "Five levels, from a light reorder to a rewrite for this one job, plus a\n"
         "page limit it has to respect. It never invents experience at any level.",
     ),
     "review": (
-        "See the score before you send",
-        "A match score out of 10, ATS keyword coverage, and every edit listed so\n"
-        "you can check it against the diff.",
-    ),
-    "apply": (
-        "Writes straight back to Overleaf",
-        "One click puts the revision in your project. Ctrl+Z in Overleaf undoes it\n"
-        "in a single step if you change your mind.",
+        "See the score before you send it",
+        "A match score out of 10, ATS keyword coverage, and every edit listed\n"
+        "beside a full diff, so nothing goes out that you have not read.",
     ),
     "settings": (
         "Your key, your model",
-        "OpenRouter, OpenAI, Anthropic, or Claude Code running locally. Keys stay\n"
-        "on your machine and are never synced.",
+        "OpenRouter, OpenAI, Anthropic, or Claude Code on your own machine.\n"
+        "Keys are stored locally and are deliberately never synced.",
     ),
 }
+
+# Chrome draws a title bar above the side panel. It is browser chrome, not the
+# extension, and the pin and close buttons only add clutter to a listing image.
+PANEL_PAPER = (250, 249, 246)
 
 
 def font(size, bold=True):
@@ -90,6 +94,23 @@ def rounded_icon(size, radius_fraction=0.18):
     )
     master.putalpha(mask)
     return master.resize((size, size), Image.LANCZOS)
+
+
+def crop_title_bar(capture):
+    """Drops Chrome's title bar, i.e. everything above the first row of panel paper."""
+    rgb = capture.convert("RGB")
+    px = rgb.load()
+    width = min(rgb.width, 400)
+
+    for y in range(min(80, rgb.height)):
+        row = [px[x, y] for x in range(0, width, 5)]
+        matching = sum(
+            1 for c in row if all(abs(c[i] - PANEL_PAPER[i]) <= 3 for i in range(3))
+        )
+        if matching / len(row) > 0.9:
+            return capture.crop((0, y, capture.width, capture.height))
+
+    return capture
 
 
 def drop_shadow(image, blur=18, offset=(0, 10), opacity=70):
@@ -146,15 +167,31 @@ def promo(width, height, icon_size, title_size, sub_size, gap, sub_lines, bars, 
     print(f"wrote {path.relative_to(ROOT)}  ({width}x{height})")
 
 
+def wrap(draw, text, text_font, max_width):
+    """Greedy word wrap measured in pixels, so a caption can never run under the panel."""
+    lines = []
+    words = text.split()
+    line = ""
+    for word in words:
+        candidate = f"{line} {word}".strip()
+        if line and draw.textlength(candidate, font=text_font) > max_width:
+            lines.append(line)
+            line = word
+        else:
+            line = candidate
+    if line:
+        lines.append(line)
+    return lines
+
+
 def screenshot(capture_path, headline, body, index, path):
     """Caption on the left, the panel capture on the right, on brand paper."""
     canvas = Image.new("RGBA", (1280, 800), PAPER + (255,))
     draw = ImageDraw.Draw(canvas)
 
-    capture = Image.open(capture_path).convert("RGBA")
+    capture = crop_title_bar(Image.open(capture_path).convert("RGBA"))
     # The side panel is tall and narrow; fit it to the canvas height.
-    max_h = 680
-    scale = min(max_h / capture.height, 560 / capture.width)
+    scale = min(700 / capture.height, 520 / capture.width)
     capture = capture.resize(
         (max(1, int(capture.width * scale)), max(1, int(capture.height * scale))),
         Image.LANCZOS,
@@ -166,19 +203,36 @@ def screenshot(capture_path, headline, body, index, path):
     )
     capture.putalpha(rounded)
 
-    shot_x = 1280 - capture.width - 90
+    shot_x = 1280 - capture.width - 80
     shot_y = (800 - capture.height) // 2
     shadow, pad = drop_shadow(capture)
     canvas.alpha_composite(shadow, (shot_x - pad, shot_y - pad))
     canvas.alpha_composite(capture, (shot_x, shot_y))
 
-    head_font = font(52)
-    body_font = font(24, bold=False)
-    label_font = font(20)
+    margin = 80
+    column = shot_x - margin - 56
 
-    draw.text((90, 250), f"{index:02d}", font=label_font, fill=TEAL)
-    draw.text((90, 290), headline, font=head_font, fill=NAVY)
-    draw.multiline_text((90, 380), body, font=body_font, fill=(90, 100, 115), spacing=10)
+    label_font = font(20)
+    head_font = font(46)
+    body_font = font(22, bold=False)
+
+    head_lines = wrap(draw, headline, head_font, column)
+    body_lines = wrap(draw, body.replace("\n", " "), body_font, column)
+    head_step = 58
+    body_step = 34
+
+    block = 34 + len(head_lines) * head_step + 18 + len(body_lines) * body_step
+    y = (800 - block) // 2
+
+    draw.text((margin, y), f"{index:02d}", font=label_font, fill=TEAL)
+    y += 34
+    for line in head_lines:
+        draw.text((margin, y), line, font=head_font, fill=NAVY)
+        y += head_step
+    y += 18
+    for line in body_lines:
+        draw.text((margin, y), line, font=body_font, fill=(92, 102, 116))
+        y += body_step
 
     canvas.convert("RGB").save(path)
     print(f"wrote {path.relative_to(ROOT)}  (1280x800)")
