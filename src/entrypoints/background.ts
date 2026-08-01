@@ -15,7 +15,8 @@ import { addHistoryEntry, getSettings, saveSettings, updateHistoryEntry } from '
 import { computePageBudget } from '@/lib/pipeline/pageBudget';
 import { analyzeJob } from '@/lib/pipeline/analyzeJob';
 import { regenerateResume, tailorResume } from '@/lib/pipeline/tailorResume';
-import type { JobProfile, TailorResult } from '@/lib/pipeline/types';
+import { scoreMatch } from '@/lib/pipeline/scoreMatch';
+import type { JobProfile, MatchScore, TailorResult } from '@/lib/pipeline/types';
 import { sendToTab, type OverleafDoc, type OverleafTabInfo } from '@/lib/messages';
 import type { WizardState } from '@/lib/state';
 
@@ -272,6 +273,14 @@ async function runGeneration(
       ? await regenerateResume(input, asModelOutput(regeneration.previous), regeneration.feedback)
       : await tailorResume(input);
 
+    // Scoring is additive: a failure here must not lose a good revision.
+    let match: MatchScore | undefined;
+    try {
+      match = await scoreMatch(provider, model, profile, state.resume.latex, result.latex);
+    } catch (e) {
+      console.warn('[skillo] match scoring failed; continuing without a score', e);
+    }
+
     // Remember the controls so the next run starts where this one left off.
     await saveSettings({
       defaults: {
@@ -295,13 +304,14 @@ async function runGeneration(
       model,
       fitLevel: state.fitLevel,
       pageLimit: state.pageLimit,
+      match,
     });
 
     return patchState({
       step: 'review',
       historyId,
       appliedAt: undefined,
-      generation: { status: 'done', runId, startedAt, result },
+      generation: { status: 'done', runId, startedAt, result, match },
     });
   } catch (e) {
     const error = toAppError(e);

@@ -121,6 +121,28 @@ export function buildRegenerateUserPrompt(feedback: string): string {
 Same rules, same output format, complete file.`;
 }
 
+export const SCORE_SYSTEM_PROMPT = `You are a strict technical recruiter. Score how well each of two versions of the same candidate's resume matches the job, from 0 to 10, where 10 means an interview is near-certain on paper and 0 means no relevant match at all. Judge only what is written on the page against what the job demands — do not give credit for potential, effort, or formatting.
+Be sceptical: most real resumes score between 4 and 8. Do not inflate the revised version's score simply because it is the newer one; if the rewrite did not add genuine evidence, the two scores should be close.
+Return ONLY a JSON object — no markdown fences, no commentary — with exactly these keys:
+"originalScore" (integer 0-10), "revisedScore" (integer 0-10), "rationale" (string, at most 2 sentences explaining the difference between the two scores), "remainingGaps" (string[]: requirements the job asks for that the revised resume still does not evidence — the things no amount of rewording could fix without inventing experience).`;
+
+export function buildScoreUserPrompt(
+  profile: JobProfile,
+  originalLatex: string,
+  revisedLatex: string,
+): string {
+  return `JOB (JSON):
+${JSON.stringify(profile, null, 2)}
+
+RESUME A — the original:
+${originalLatex}
+
+RESUME B — the revised version:
+${revisedLatex}
+
+Score A as "originalScore" and B as "revisedScore".`;
+}
+
 /** Appended when the model's previous reply was unusable. */
 export const JSON_RETRY_NUDGE =
   'Your previous reply was not valid JSON. Reply with ONLY the JSON object, no fences and no commentary.';

@@ -1,7 +1,7 @@
 import { browser } from 'wxt/browser';
 import type { ProviderId } from './providers/types';
 import type { JobPosting } from './jobIntake/types';
-import type { JobProfile } from './pipeline/types';
+import type { JobProfile, MatchScore } from './pipeline/types';
 import type { FitLevel, PageLimit } from './state';
 
 export interface ProviderConfig {
@@ -40,6 +40,7 @@ export interface HistoryEntry {
   model: string;
   fitLevel?: FitLevel;
   pageLimit?: PageLimit;
+  match?: MatchScore;
 }
 
 export const DEFAULT_SETTINGS: Settings = {

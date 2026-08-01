@@ -13,6 +13,15 @@ export interface JobProfile {
   summaryForTailoring: string;
 }
 
+/** Stage-3 output: how well each version matches, and what tailoring could not fix. */
+export interface MatchScore {
+  originalScore: number;
+  revisedScore: number;
+  rationale: string;
+  /** Requirements the revision still does not evidence. */
+  remainingGaps: string[];
+}
+
 /** Stage-2 output after parsing the delimiter format. */
 export interface TailorResult {
   /** Markdown bullet list of changes and reasoning, straight from the model. */

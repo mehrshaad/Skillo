@@ -1,7 +1,7 @@
 import { browser, type Browser } from 'wxt/browser';
 import type { AppError } from './errors';
 import type { JobPosting } from './jobIntake/types';
-import type { JobProfile, TailorResult } from './pipeline/types';
+import type { JobProfile, MatchScore, TailorResult } from './pipeline/types';
 
 export type WizardStep = 'job' | 'resume' | 'tailor' | 'review';
 
@@ -30,6 +30,8 @@ export interface GenerationState {
   startedAt?: string;
   error?: AppError;
   result?: TailorResult;
+  /** Absent when scoring failed or was skipped — never blocks a run. */
+  match?: MatchScore;
 }
 
 /** 1 = change as little as possible, 5 = rewrite hard for this job. */

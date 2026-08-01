@@ -199,3 +199,21 @@ against PDF.js-shaped DOM including the virtualized and gutter-confusion cases.
       **Regenerate shorter**, and the regeneration is actually shorter
 - [ ] Close the Overleaf PDF pane and check again → it says it could not read the count
       rather than reporting a wrong one
+
+## V3 — Match score
+
+Automated already: parsing, clamping out-of-range and string scores, dropping non-string
+gaps, the retry, and that both resumes are sent labelled A and B.
+
+- [ ] After generating, the Review step opens with `original → revised` out of 10 and a
+      one-line rationale
+- [ ] The remaining-gaps list names things genuinely missing from your resume — sanity
+      check a couple against the job posting
+- [ ] Generate at **lowest** and again at **very high** for the same job — the revised
+      score should not go *down* at the higher setting
+- [ ] Score inflation check: generate against a job you are clearly unqualified for. The
+      revised score should stay low. If every job scores 8+, the scoring prompt is
+      flattering and needs tuning — note it rather than adjusting the number
+- [ ] The score is stored with the run and still shows when reopening it from history
+- [ ] Break scoring deliberately (revoke the API key right after the diff appears, or use
+      a model that refuses) → the revision still appears, just without a score

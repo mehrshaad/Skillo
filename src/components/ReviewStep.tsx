@@ -3,6 +3,7 @@ import { ErrorCode, type AppError } from '@/lib/errors';
 import { sendMessage } from '@/lib/messages';
 import type { WizardState } from '@/lib/state';
 import { DiffView } from './DiffView';
+import { MatchScoreCard } from './MatchScoreCard';
 import { Button, Chip, ErrorNote, Eyebrow, Note, Spinner, TextArea } from './ui';
 
 const PAGE_POLL_ATTEMPTS = 7;
@@ -159,6 +160,8 @@ export function ReviewStep({ state }: { state: WizardState }) {
 
   return (
     <div className="space-y-4">
+      {state.generation.match && <MatchScoreCard match={state.generation.match} />}
+
       {result.validationErrors && result.validationErrors.length > 0 && (
         <Note>
           <p className="font-medium">This revision did not pass Skillo's LaTeX checks.</p>

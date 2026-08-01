@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { clearHistory, getHistory, type HistoryEntry } from '@/lib/storage';
 import { DiffView } from './DiffView';
+import { MatchScoreCard } from './MatchScoreCard';
 import { Button, Chip, Eyebrow } from './ui';
 
 export function History({ onClose }: { onClose: () => void }) {
@@ -31,6 +32,8 @@ export function History({ onClose }: { onClose: () => void }) {
             {open.applied ? <Chip tone="proof">applied</Chip> : <Chip>not applied</Chip>}
           </div>
         </section>
+
+        {open.match && <MatchScoreCard match={open.match} />}
 
         <section className="space-y-1.5">
           <Eyebrow>What changed</Eyebrow>
