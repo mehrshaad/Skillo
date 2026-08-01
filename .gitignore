@@ -6,6 +6,7 @@ stats.html
 .DS_Store
 
 # Scratch tooling for picking a design, kept locally but not part of the repo.
+# icon20.png is NOT here: it is the icon master that scripts/generate-icons.mjs
+# builds from, so it has to be tracked.
 icon-options/
 scripts/generate-icon-options.mjs
-icon20.png

@@ -1,185 +1,201 @@
 /**
- * Generates the extension icons.
+ * Builds the extension icons from the master artwork.
  *
- * The mark is a bold S beside three skill bullets on a white rounded plate:
- * the letter carries the name, the bullets say the subject is a resume. Two
- * elements is the most that survives 16px, which is the size that actually
- * matters — a toolbar icon is read at a glance or not at all.
+ * This does not draw anything. It takes `icon20.png` exactly as it is, rounds
+ * the corners, and resizes it to the sizes the manifest asks for. Keeping the
+ * step scripted rather than doing it by hand means the icons can be rebuilt
+ * from the master at any time, and the master stays the single source of truth.
  *
- * The S is built from two elliptical annulus arcs rather than a font, since
- * there is no text rasteriser here. Each bowl keeps a different horizontal and
- * vertical thickness, which is what gives a bold S its stress; a uniform stroke
- * reads as a ribbon.
- *
- * Geometry and palette were measured off the chosen concept tile, so the
- * constants below are in that tile's normalized coordinates and `MARK_SCALE`
- * enlarges the whole composition to use more of the plate.
+ * The corners are masked at full resolution and the downscale is a true area
+ * average, so the rounding antialiases itself on the way down — no separate
+ * smoothing pass, and no blurring of the artwork.
  *
  *   node scripts/generate-icons.mjs
  */
 
-import { deflateSync } from 'node:zlib';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { deflateSync, inflateSync } from 'node:zlib';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const MASTER = join(ROOT, 'icon20.png');
 // WXT resolves publicDir against the project root, not srcDir.
-const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icon');
+const OUT_DIR = join(ROOT, 'public', 'icon');
 const SIZES = [16, 32, 48, 128];
 
-const PLATE_FILL = [0xff, 0xff, 0xff];
-const NAVY = [0x10, 0x21, 0x3d];
-const TEAL = [0x2a, 0xc0, 0xb6];
+/** Corner radius as a fraction of the side. */
+const RADIUS = 0.18;
 
-/** Samples per axis; 8 means 64 samples per output pixel. */
-const SUPERSAMPLE = 8;
+/* ------------------------------------------------------------ PNG decoding */
 
-/* ------------------------------------------------------------------ shapes */
+function readChunks(buf) {
+  if (buf.readUInt32BE(0) !== 0x89504e47) throw new Error('not a PNG');
 
-/** Signed distance to a rounded rectangle, negative inside. */
-function roundedRect(px, py, cx, cy, halfW, halfH, radius) {
-  const qx = Math.abs(px - cx) - (halfW - radius);
-  const qy = Math.abs(py - cy) - (halfH - radius);
-  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius;
-}
-
-/** Angle in degrees, 0 = right, 90 = below, measured with y pointing down. */
-function angleAt(px, py, cx, cy) {
-  const deg = (Math.atan2(py - cy, px - cx) * 180) / Math.PI;
-  return deg < 0 ? deg + 360 : deg;
-}
-
-function inSpan(angle, spans) {
-  return spans.some(([from, to]) => angle >= from && angle <= to);
-}
-
-/**
- * One bowl of the S: the band between two concentric ellipses, cut down to the
- * angular spans that the letter actually draws.
- */
-function inBowl(px, py, bowl) {
-  const dx = (px - bowl.cx) / bowl.a;
-  const dy = (py - bowl.cy) / bowl.b;
-  if (dx * dx + dy * dy > 1) return false;
-
-  const ix = (px - bowl.cx) / bowl.ai;
-  const iy = (py - bowl.cy) / bowl.bi;
-  if (ix * ix + iy * iy < 1) return false;
-
-  return inSpan(angleAt(px, py, bowl.cx, bowl.cy), bowl.spans);
-}
-
-/** A horizontal bar with fully rounded ends. */
-function inBar(px, py, x1, x2, cy, halfH) {
-  return roundedRect(px, py, (x1 + x2) / 2, cy, (x2 - x1) / 2, halfH, halfH) <= 0;
-}
-
-/* ---------------------------------------------------------------- geometry */
-
-const PLATE = { cx: 0.5, cy: 0.5, half: 0.485, radius: 0.15 };
-
-/** Enlarges the measured composition about its own centre to fill the plate. */
-const MARK_SCALE = 1.12;
-const MARK_CENTRE_Y = 0.479;
-
-const S_CX = 0.309;
-/**
- * Outer semi-axes, then the counter's. The bowls are taller than half the
- * letter on purpose: they have to overlap vertically or the waist meets at a
- * single point and the S pinches in two.
- */
-const BOWL = { a: 0.158, b: 0.132, ai: 0.07, bi: 0.075 };
-
-const UPPER = {
-  ...BOWL,
-  cx: S_CX,
-  cy: 0.382,
-  // Waist, up the left, over the top, out to the top-right terminal.
-  spans: [[90, 342]],
-};
-const LOWER = {
-  ...BOWL,
-  cx: S_CX,
-  cy: 0.5763,
-  // Waist, round the right, across the bottom, to the lower-left terminal.
-  spans: [
-    [270, 360],
-    [0, 162],
-  ],
-};
-
-const ROWS = [0.316, 0.4774, 0.6389];
-const DOT = { cx: 0.5938, r: 0.0399 };
-const BAR = { x1: 0.6806, x2: 0.8542, halfH: 0.0243 };
-
-/**
- * Below this size the bullet dots land on less than a pixel and the rows blur
- * into one pale block, so the small icon drops them, runs each bar back to
- * where its dot was, and thickens it. Optical sizing, not a different mark.
- */
-const SMALL_SIZE = 20;
-const SMALL = { scale: 1.22, x1: DOT.cx - DOT.r, halfH: 0.032 };
-
-/** Colour at one sample point, or null where nothing is drawn. */
-function sampleAt(px, py, small) {
-  if (roundedRect(px, py, PLATE.cx, PLATE.cy, PLATE.half, PLATE.half, PLATE.radius) > 0) {
-    return null;
+  const chunks = [];
+  let offset = 8;
+  while (offset < buf.length) {
+    const length = buf.readUInt32BE(offset);
+    const type = buf.toString('ascii', offset + 4, offset + 8);
+    chunks.push({ type, data: buf.subarray(offset + 8, offset + 8 + length) });
+    offset += 12 + length;
+    if (type === 'IEND') break;
   }
-
-  // Into the coordinates the constants above were measured in.
-  const scale = small ? SMALL.scale : MARK_SCALE;
-  const x = 0.5 + (px - 0.5) / scale;
-  const y = MARK_CENTRE_Y + (py - 0.5) / scale;
-
-  if (inBowl(x, y, UPPER) || inBowl(x, y, LOWER)) return NAVY;
-
-  const x1 = small ? SMALL.x1 : BAR.x1;
-  const halfH = small ? SMALL.halfH : BAR.halfH;
-  for (const cy of ROWS) {
-    if (!small && Math.hypot(x - DOT.cx, y - cy) <= DOT.r) return TEAL;
-    if (inBar(x, y, x1, BAR.x2, cy, halfH)) return TEAL;
-  }
-
-  return PLATE_FILL;
+  return chunks;
 }
 
-function render(size) {
-  const pixels = Buffer.alloc(size * size * 4);
-  const step = 1 / (size * SUPERSAMPLE);
-  const small = size <= SMALL_SIZE;
+function paeth(a, b, c) {
+  const p = a + b - c;
+  const pa = Math.abs(p - a);
+  const pb = Math.abs(p - b);
+  const pc = Math.abs(p - c);
+  if (pa <= pb && pa <= pc) return a;
+  return pb <= pc ? b : c;
+}
 
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      let r = 0;
-      let g = 0;
-      let b = 0;
-      let covered = 0;
+/** Returns { width, height, pixels } with pixels as RGBA bytes. */
+function decodePng(buf) {
+  const chunks = readChunks(buf);
 
-      for (let sy = 0; sy < SUPERSAMPLE; sy++) {
-        for (let sx = 0; sx < SUPERSAMPLE; sx++) {
-          const px = (x * SUPERSAMPLE + sx + 0.5) * step;
-          const py = (y * SUPERSAMPLE + sy + 0.5) * step;
-          const colour = sampleAt(px, py, small);
-          if (!colour) continue;
-          r += colour[0];
-          g += colour[1];
-          b += colour[2];
-          covered++;
-        }
+  const ihdr = chunks.find((c) => c.type === 'IHDR');
+  if (!ihdr) throw new Error('no IHDR');
+  const width = ihdr.data.readUInt32BE(0);
+  const height = ihdr.data.readUInt32BE(4);
+  const depth = ihdr.data[8];
+  const colourType = ihdr.data[9];
+  const interlace = ihdr.data[12];
+
+  if (depth !== 8) throw new Error(`unsupported bit depth ${depth}`);
+  if (interlace !== 0) throw new Error('interlaced PNGs are not supported');
+  const channels = { 0: 1, 2: 3, 4: 2, 6: 4 }[colourType];
+  if (!channels) throw new Error(`unsupported colour type ${colourType}`);
+
+  const raw = inflateSync(
+    Buffer.concat(chunks.filter((c) => c.type === 'IDAT').map((c) => c.data)),
+  );
+
+  const stride = width * channels;
+  const lines = Buffer.alloc(height * stride);
+
+  for (let y = 0; y < height; y++) {
+    const filter = raw[y * (stride + 1)];
+    const src = y * (stride + 1) + 1;
+    const dst = y * stride;
+    const up = dst - stride;
+
+    for (let i = 0; i < stride; i++) {
+      const x = raw[src + i];
+      const a = i >= channels ? lines[dst + i - channels] : 0;
+      const b = y > 0 ? lines[up + i] : 0;
+      const c = y > 0 && i >= channels ? lines[up + i - channels] : 0;
+
+      let value;
+      switch (filter) {
+        case 0: value = x; break;
+        case 1: value = x + a; break;
+        case 2: value = x + b; break;
+        case 3: value = x + ((a + b) >> 1); break;
+        case 4: value = x + paeth(a, b, c); break;
+        default: throw new Error(`unknown filter ${filter} on row ${y}`);
       }
-
-      const offset = (y * size + x) * 4;
-      const total = SUPERSAMPLE * SUPERSAMPLE;
-      if (covered > 0) {
-        pixels[offset] = Math.round(r / covered);
-        pixels[offset + 1] = Math.round(g / covered);
-        pixels[offset + 2] = Math.round(b / covered);
-        pixels[offset + 3] = Math.round((covered / total) * 255);
-      }
+      lines[dst + i] = value & 0xff;
     }
   }
 
-  return pixels;
+  // Normalize whatever came in to RGBA.
+  const pixels = Buffer.alloc(width * height * 4);
+  for (let i = 0; i < width * height; i++) {
+    const s = i * channels;
+    const d = i * 4;
+    if (channels === 4) {
+      lines.copy(pixels, d, s, s + 4);
+    } else if (channels === 3) {
+      pixels[d] = lines[s];
+      pixels[d + 1] = lines[s + 1];
+      pixels[d + 2] = lines[s + 2];
+      pixels[d + 3] = 255;
+    } else if (channels === 2) {
+      pixels.fill(lines[s], d, d + 3);
+      pixels[d + 3] = lines[s + 1];
+    } else {
+      pixels.fill(lines[s], d, d + 3);
+      pixels[d + 3] = 255;
+    }
+  }
+
+  return { width, height, pixels };
+}
+
+/* ---------------------------------------------------------- mask and scale */
+
+/** Clears everything outside a rounded square, in place. */
+function roundCorners(image) {
+  const { width: w, height: h, pixels } = image;
+  const radius = Math.min(w, h) * RADIUS;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      // Distance past the straight edges, i.e. how far into a corner we are.
+      const dx = Math.abs(x + 0.5 - w / 2) - (w / 2 - radius);
+      const dy = Math.abs(y + 0.5 - h / 2) - (h / 2 - radius);
+      if (dx <= 0 || dy <= 0) continue;
+      if (Math.hypot(dx, dy) > radius) pixels[(y * w + x) * 4 + 3] = 0;
+    }
+  }
+}
+
+/**
+ * Area-average resample. Every source pixel contributes in proportion to how
+ * much of it the output pixel covers, which is the right filter for a large
+ * reduction — and it is what antialiases the masked corners.
+ */
+function resize(image, size) {
+  const { width: sw, height: sh, pixels: src } = image;
+  const out = Buffer.alloc(size * size * 4);
+  const scaleX = sw / size;
+  const scaleY = sh / size;
+
+  for (let oy = 0; oy < size; oy++) {
+    const y0 = oy * scaleY;
+    const y1 = y0 + scaleY;
+
+    for (let ox = 0; ox < size; ox++) {
+      const x0 = ox * scaleX;
+      const x1 = x0 + scaleX;
+
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let alpha = 0;
+      let weight = 0;
+
+      for (let sy = Math.floor(y0); sy < Math.ceil(y1); sy++) {
+        const wy = Math.min(y1, sy + 1) - Math.max(y0, sy);
+        for (let sx = Math.floor(x0); sx < Math.ceil(x1); sx++) {
+          const wx = Math.min(x1, sx + 1) - Math.max(x0, sx);
+          const w = wx * wy;
+          const i = (sy * sw + sx) * 4;
+          // Premultiplied, so transparent pixels cannot tint the edge.
+          const a = src[i + 3] / 255;
+          r += src[i] * a * w;
+          g += src[i + 1] * a * w;
+          b += src[i + 2] * a * w;
+          alpha += a * w;
+          weight += w;
+        }
+      }
+
+      const o = (oy * size + ox) * 4;
+      if (alpha > 0) {
+        out[o] = Math.round(r / alpha);
+        out[o + 1] = Math.round(g / alpha);
+        out[o + 2] = Math.round(b / alpha);
+      }
+      out[o + 3] = Math.round((alpha / weight) * 255);
+    }
+  }
+
+  return out;
 }
 
 /* ------------------------------------------------------------- PNG writing */
@@ -228,9 +244,13 @@ function encodePng(size, pixels) {
   ]);
 }
 
+const master = decodePng(readFileSync(MASTER));
+console.log(`master ${master.width}x${master.height}`);
+roundCorners(master);
+
 mkdirSync(OUT_DIR, { recursive: true });
 for (const size of SIZES) {
   const file = join(OUT_DIR, `${size}.png`);
-  writeFileSync(file, encodePng(size, render(size)));
+  writeFileSync(file, encodePng(size, resize(master, size)));
   console.log(`wrote ${file}`);
 }
