@@ -1,5 +1,6 @@
 import type { JobPosting } from '@/core/jobIntake/types';
 import type { PageBudget } from './pageBudget';
+import { profileBlock, type UserProfile } from '@/core/profile';
 import type { JobProfile } from './types';
 
 /*
@@ -125,15 +126,18 @@ export function buildTailorUserPrompt(
   profile: JobProfile,
   notes: string,
   latex: string,
+  candidate?: UserProfile | null,
 ): string {
-  return `JOB ANALYSIS (JSON):
-${JSON.stringify(profile, null, 2)}
+  const about = profileBlock(candidate ?? null);
 
-CANDIDATE NOTES:
-${notes.trim() || 'none'}
-
-CURRENT RESUME (LaTeX):
-${latex}`;
+  return [
+    `JOB ANALYSIS (JSON):\n${JSON.stringify(profile, null, 2)}`,
+    about,
+    `CANDIDATE NOTES FOR THIS APPLICATION:\n${notes.trim() || 'none'}`,
+    `CURRENT RESUME (LaTeX):\n${latex}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 export function buildRegenerateUserPrompt(feedback: string): string {

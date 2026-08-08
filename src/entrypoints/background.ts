@@ -21,6 +21,7 @@ import {
 import { hashText } from '@/core/hash';
 import { computePageBudget } from '@/core/pipeline/pageBudget';
 import { getDensityModel, recordObservation } from '@/lib/pipeline/densityStore';
+import { getProfile } from '@/lib/profileStore';
 import { analyzeJob } from '@/core/pipeline/analyzeJob';
 import { regenerateResume, tailorResume } from '@/core/pipeline/tailorResume';
 import { scoreMatch } from '@/core/pipeline/scoreMatch';
@@ -325,6 +326,7 @@ async function runGeneration(
       model,
       profile,
       notes,
+      candidate: await getProfile(),
       latex: state.resume.latex,
       fitLevel: state.fitLevel,
       budget,

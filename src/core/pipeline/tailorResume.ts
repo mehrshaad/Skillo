@@ -9,6 +9,7 @@ import {
   buildTailorUserPrompt,
   buildValidationRetryNudge,
 } from './prompts';
+import type { UserProfile } from '@/core/profile';
 import type { JobProfile, TailorResult } from './types';
 import { validateLatex } from './validateLatex';
 
@@ -23,12 +24,14 @@ export interface TailorInput {
   latex: string;
   fitLevel: number;
   budget: PageBudget;
+  /** What the user told Skillo about themselves. Absent is normal. */
+  candidate?: UserProfile | null;
 }
 
 export async function tailorResume(input: TailorInput): Promise<TailorResult> {
   const messages: ChatMessage[] = [
     { role: 'system', content: buildTailorSystemPrompt(input.fitLevel, input.budget) },
-    { role: 'user', content: buildTailorUserPrompt(input.profile, input.notes, input.latex) },
+    { role: 'user', content: buildTailorUserPrompt(input.profile, input.notes, input.latex, input.candidate) },
   ];
   return runTailorExchange(input, messages);
 }
@@ -40,7 +43,7 @@ export async function regenerateResume(
 ): Promise<TailorResult> {
   const messages: ChatMessage[] = [
     { role: 'system', content: buildTailorSystemPrompt(input.fitLevel, input.budget) },
-    { role: 'user', content: buildTailorUserPrompt(input.profile, input.notes, input.latex) },
+    { role: 'user', content: buildTailorUserPrompt(input.profile, input.notes, input.latex, input.candidate) },
     { role: 'assistant', content: previousOutput },
     { role: 'user', content: buildRegenerateUserPrompt(feedback) },
   ];

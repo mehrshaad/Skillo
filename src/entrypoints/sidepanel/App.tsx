@@ -8,8 +8,11 @@ import { TailorStep } from '@/components/TailorStep';
 import { ReviewStep } from '@/components/ReviewStep';
 import { Settings } from '@/components/Settings';
 import { History } from '@/components/History';
+import { Profile } from '@/components/Profile';
 import { Button, ErrorNote, Spinner, SwapText } from '@/components/ui';
 import { applyRevision } from '@/lib/applyRevision';
+import { isProfileEmpty } from '@/core/profile';
+import { getProfile } from '@/lib/profileStore';
 import { STEPS, footerAction, isReachable, type FooterAction } from '@/lib/wizardNav';
 import type { AppError } from '@/core/errors';
 
@@ -24,7 +27,8 @@ const FOOTER_LABEL: Record<FooterAction, string> = {
 export default function App() {
   const [state, setState] = useState<WizardState | null>(null);
   const [settings, setSettings] = useState<SettingsData | null>(null);
-  const [overlay, setOverlay] = useState<null | 'settings' | 'history'>(null);
+  const [overlay, setOverlay] = useState<null | 'settings' | 'history' | 'profile'>(null);
+  const [profileEmpty, setProfileEmpty] = useState(false);
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState<AppError | null>(null);
   /** Null until edited, so the draft falls through to whatever the last run used. */
@@ -32,12 +36,14 @@ export default function App() {
   const [generateError, setGenerateError] = useState<AppError | null>(null);
 
   const refreshSettings = () => void getSettings().then(setSettings);
+  const refreshProfile = () => void getProfile().then((p) => setProfileEmpty(isProfileEmpty(p)));
 
   useEffect(() => {
     void sendMessage({ type: 'state/get' }).then((res) => {
       if (res.ok) setState(res.data);
     });
     refreshSettings();
+    refreshProfile();
     return onStateChange(setState);
   }, []);
 
@@ -60,6 +66,19 @@ export default function App() {
     return (
       <Shell>
         <History onClose={() => setOverlay(null)} />
+      </Shell>
+    );
+  }
+
+  if (overlay === 'profile') {
+    return (
+      <Shell>
+        <Profile
+          onClose={() => {
+            refreshProfile();
+            setOverlay(null);
+          }}
+        />
       </Shell>
     );
   }
@@ -99,6 +118,14 @@ export default function App() {
       <header className="flex items-baseline justify-between border-b border-rule px-4 py-3">
         <h1 className="font-mono text-[15px] font-bold tracking-tight">skillo</h1>
         <div className="flex gap-3">
+          <button
+            onClick={() => setOverlay('profile')}
+            className={`font-mono text-[10px] underline hover:text-proof ${
+              profileEmpty ? 'font-semibold text-proof' : 'text-muted'
+            }`}
+          >
+            {profileEmpty ? 'about you →' : 'about you'}
+          </button>
           <button
             onClick={() => setOverlay('history')}
             className="font-mono text-[10px] text-muted underline hover:text-proof"
