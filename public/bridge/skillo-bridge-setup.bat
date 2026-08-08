@@ -38,7 +38,7 @@ if ($claude) {
 }
 
 # Extension ids allowed to talk to this host.
-$origins = @('chrome-extension://hfbincjmdcgfhffnpanjdfcccpejdkei/')
+$origins = @('chrome-extension://hfbincjmdcgfhffnpanjdfcccpejdkei/', 'chrome-extension://ilhflilolgbeebngfckmcpdjjmmnmjkl/')
 if ($Argument -and $Argument -notlike '--*') {
     $origins += "chrome-extension://$Argument/"
     Write-Host "Also allowing: $Argument"

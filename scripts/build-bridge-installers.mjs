@@ -26,11 +26,14 @@ const HOST_NAME = 'com.skillo.bridge';
 /**
  * Every extension id the host will talk to. The unpacked build is pinned by the
  * `key` in wxt.config.ts; the store build gets its id from Chrome, which is
- * only known after the first upload — fill STORE_EXTENSION_ID in then and
- * regenerate (see docs/findings.md).
+ * only known after the first upload (see docs/findings.md).
+ *
+ * Both are listed, so one installed bridge serves a developer running from
+ * source and a user who installed from the store.
  */
 const DEV_EXTENSION_ID = 'hfbincjmdcgfhffnpanjdfcccpejdkei';
-const STORE_EXTENSION_ID = '';
+/** https://chromewebstore.google.com/detail/skillo-resume-tailor/ilhflilolgbeebngfckmcpdjjmmnmjkl */
+const STORE_EXTENSION_ID = 'ilhflilolgbeebngfckmcpdjjmmnmjkl';
 
 const hostSource = readFileSync(join(root, 'bridge', 'host.mjs'));
 const hostBase64 = hostSource.toString('base64');

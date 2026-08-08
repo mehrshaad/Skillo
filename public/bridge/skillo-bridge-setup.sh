@@ -36,7 +36,7 @@ else
   echo "The bridge will install, but Skillo cannot use it until Claude Code is installed." >&2
 fi
 
-ORIGINS='"chrome-extension://hfbincjmdcgfhffnpanjdfcccpejdkei/"'
+ORIGINS='"chrome-extension://hfbincjmdcgfhffnpanjdfcccpejdkei/", "chrome-extension://ilhflilolgbeebngfckmcpdjjmmnmjkl/"'
 if [ -n "${1:-}" ]; then
   ORIGINS="$ORIGINS, \"chrome-extension://${1}/\""
   echo "Also allowing: ${1}"
