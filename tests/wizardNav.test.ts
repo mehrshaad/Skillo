@@ -16,6 +16,7 @@ function stateAt(step: WizardStep, over: Partial<WizardState> = {}): WizardState
     fitLevel: 3,
     pageLimit: 2,
     fillLastPage: false,
+    highEffort: true,
     generation: { status: 'idle' },
     ...over,
   };

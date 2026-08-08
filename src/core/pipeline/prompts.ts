@@ -150,6 +150,80 @@ If the feedback asks for more or less content, change the amount of content acco
 Same rules, same output format, complete file.`;
 }
 
+/*
+ * The critique pass. Deliberately hostile: a model asked "is this good?" says
+ * yes, and a model asked "what would make you bin this?" finds real problems.
+ *
+ * It doubles as a truthfulness check. The pass that is most likely to notice an
+ * invented claim is the one reading the draft against the original with fresh
+ * instructions, so it is told to look — that is worth more than any amount of
+ * telling the writer not to invent things in the first place.
+ */
+export const CRITIQUE_SYSTEM_PROMPT = `You are screening resumes for this exact role, and you have six seconds per resume and eighty to get through. You are not the candidate's friend and you are not writing feedback for them to read.
+
+You will be given the job, the candidate's original resume, and a rewritten version of it. Say what is wrong with the rewrite.
+
+Look for, in this order:
+1. ANY claim in the rewrite that is not supported by the original resume. Quote it. This matters more than everything else combined — an invented employer, title, date, metric, certification or skill has to be caught here.
+2. Bullets that state a duty rather than what the person did and what came of it.
+3. Writing that reads as machine-generated: verb chains, empty intensifiers, identical bullet shapes, corporate filler, keyword stuffing, sentences that exist only to hold a term.
+4. Anything that would make you stop reading: burying the relevant experience, a summary that could belong to anyone, formatting noise.
+5. Requirements from the job that the resume evidences but does not make visible.
+
+Return ONLY a JSON object — no markdown fences, no commentary — with exactly these keys:
+"unsupported" (string[]: each an exact quote from the rewrite that the original does not support; empty if none — do not pad this list),
+"weak" (string[]: specific problems, each naming what to change and why),
+"missed" (string[]: things the resume genuinely evidences that the rewrite fails to surface for this job),
+"verdict" (string, one sentence: would you interview this person on this resume, and what decides it).
+
+Be concrete. "Improve the summary" is useless; "the summary says 'results-driven engineer' and could belong to anyone — it should lead with the Postgres migration, which is what this job asks for" is useful.`;
+
+export function buildCritiqueUserPrompt(
+  profile: JobProfile,
+  originalLatex: string,
+  revisedLatex: string,
+): string {
+  return `JOB (JSON):
+${JSON.stringify(profile, null, 2)}
+
+ORIGINAL RESUME — the only source of truth about this person:
+${originalLatex}
+
+REWRITTEN RESUME — the one you are screening:
+${revisedLatex}`;
+}
+
+export interface Critique {
+  unsupported: string[];
+  weak: string[];
+  missed: string[];
+  verdict: string;
+}
+
+/** Formats the critique back into an instruction the writer can act on. */
+export function buildRevisionPrompt(critique: Critique): string {
+  const section = (title: string, items: string[]) =>
+    items.length > 0 ? `${title}\n${items.map((i) => `- ${i}`).join('\n')}` : '';
+
+  const body = [
+    section(
+      'UNSUPPORTED CLAIMS — remove or rewrite every one of these. Nothing here may survive into the final resume unless the original resume genuinely supports it:',
+      critique.unsupported,
+    ),
+    section('WEAKNESSES a screener found:', critique.weak),
+    section('RELEVANT EXPERIENCE the rewrite failed to surface:', critique.missed),
+    critique.verdict ? `Their verdict: ${critique.verdict}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  return `A screener has read your rewrite against the original. Fix what they found.
+
+${body}
+
+Produce the corrected resume in full, under exactly the same rules and the same output format as before. The same page budget applies. Do not respond to the critique in prose — the only output is the revised file.`;
+}
+
 export const SCORE_SYSTEM_PROMPT = `You are a strict technical recruiter. Score how well each of two versions of the same candidate's resume matches the job, from 0 to 10, where 10 means an interview is near-certain on paper and 0 means no relevant match at all. Judge only what is written on the page against what the job demands — do not give credit for potential, effort, or formatting.
 Be sceptical: most real resumes score between 4 and 8. Do not inflate the revised version's score simply because it is the newer one; if the rewrite did not add genuine evidence, the two scores should be close.
 Return ONLY a JSON object — no markdown fences, no commentary — with exactly these keys:

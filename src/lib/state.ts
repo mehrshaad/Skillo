@@ -11,6 +11,8 @@ export type GenerationStatus =
   | 'idle'
   | 'analyzing'
   | 'tailoring'
+  | 'critiquing'
+  | 'revising'
   | 'validating'
   | 'done'
   | 'error';
@@ -65,6 +67,8 @@ export interface WizardState {
   fitLevel: FitLevel;
   pageLimit: PageLimit;
   fillLastPage: boolean;
+  /** Three passes instead of one: draft, critique, revise. */
+  highEffort: boolean;
   generation: GenerationState;
   /** Set once the revision has been written into Overleaf. */
   appliedAt?: string;
@@ -78,6 +82,7 @@ export const INITIAL_STATE: WizardState = {
   fitLevel: 3,
   pageLimit: 2,
   fillLastPage: false,
+  highEffort: true,
   generation: { status: 'idle' },
 };
 

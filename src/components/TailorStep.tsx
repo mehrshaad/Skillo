@@ -7,6 +7,8 @@ import { Button, ErrorNote, LevelBar, Note, SectionHeader, Spinner, TextArea, To
 const PROGRESS_LABEL: Record<string, string> = {
   analyzing: 'Reading the job posting…',
   tailoring: 'Rewriting your resume…',
+  critiquing: 'Screening it the way a recruiter would…',
+  revising: 'Fixing what the screening found…',
   validating: 'Checking the LaTeX…',
 };
 
@@ -28,7 +30,9 @@ export function TailorStep({
   onNotesChange: (notes: string) => void;
   onGenerate: () => void;
 }) {
-  const running = state.generation.status === 'analyzing' || state.generation.status === 'tailoring';
+  const running = state.generation.status !== 'idle' &&
+    state.generation.status !== 'done' &&
+    state.generation.status !== 'error';
 
   const patch = (p: Partial<WizardState>) =>
     void sendMessage({ type: 'state/update', patch: p });
@@ -78,6 +82,25 @@ export function TailorStep({
           onChange={(v) => patch({ fillLastPage: v })}
           label="Fill the last page"
           description="Asks for a full last page rather than a half-empty one. Skillo can verify the page count after applying, but not how full the last page ended up — check that yourself."
+        />
+      </section>
+
+      <section className="space-y-2">
+        <SectionHeader
+          meta={
+            <span className="font-semibold text-proof">
+              {state.highEffort ? 'three passes' : 'one pass'}
+            </span>
+          }
+        >
+          How hard to work
+        </SectionHeader>
+        <Toggle
+          checked={state.highEffort}
+          disabled={running}
+          onChange={(v) => patch({ highEffort: v })}
+          label="Screen it before showing it to you"
+          description="Writes the resume, reads it back as a hostile recruiter would, then fixes what that finds — including anything it cannot support from your original. Noticeably better writing, and the pass that catches invented claims. Roughly three times the tokens and the wait."
         />
       </section>
 

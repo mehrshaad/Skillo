@@ -23,7 +23,12 @@ import { computePageBudget } from '@/core/pipeline/pageBudget';
 import { getDensityModel, recordObservation } from '@/lib/pipeline/densityStore';
 import { getProfile } from '@/lib/profileStore';
 import { analyzeJob } from '@/core/pipeline/analyzeJob';
-import { regenerateResume, tailorResume } from '@/core/pipeline/tailorResume';
+import {
+  critiqueRevision,
+  regenerateResume,
+  reviseFromCritique,
+  tailorResume,
+} from '@/core/pipeline/tailorResume';
 import { scoreMatch } from '@/core/pipeline/scoreMatch';
 import { atsScore } from '@/core/pipeline/atsScore';
 import { latexToPlainText } from '@/core/latexText';
@@ -236,6 +241,7 @@ async function generationDefaults(): Promise<Partial<WizardState>> {
     fitLevel: defaults?.fitLevel ?? INITIAL_STATE.fitLevel,
     pageLimit: defaults?.pageLimit ?? INITIAL_STATE.pageLimit,
     fillLastPage: defaults?.fillLastPage ?? INITIAL_STATE.fillLastPage,
+    highEffort: defaults?.highEffort ?? INITIAL_STATE.highEffort,
   };
 }
 
@@ -331,9 +337,28 @@ async function runGeneration(
       fitLevel: state.fitLevel,
       budget,
     };
-    const result = regeneration
+    const draft = regeneration
       ? await regenerateResume(input, asModelOutput(regeneration.previous), regeneration.feedback)
       : await tailorResume(input);
+
+    // Draft, critique, revise. The critique is where an invented claim gets
+    // caught, because it is the only pass reading the rewrite against the
+    // original with fresh instructions. Both extra passes are additive: if
+    // either fails, the draft still stands rather than the run being lost.
+    let result = draft;
+    if (state.highEffort && !draft.validationErrors?.length) {
+      await patchState({ generation: { status: 'critiquing', runId, startedAt } });
+      const critique = await critiqueRevision(input, draft);
+
+      if (critique) {
+        await patchState({ generation: { status: 'revising', runId, startedAt } });
+        try {
+          result = await reviseFromCritique(input, draft, critique);
+        } catch (e) {
+          console.warn('[skillo] revision pass failed; keeping the draft', e);
+        }
+      }
+    }
 
     // Scoring is additive: a failure here must not lose a good revision.
     let match: MatchScore | undefined;
@@ -355,6 +380,7 @@ async function runGeneration(
         fitLevel: state.fitLevel,
         pageLimit: state.pageLimit,
         fillLastPage: state.fillLastPage,
+        highEffort: state.highEffort,
       },
     });
 

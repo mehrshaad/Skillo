@@ -12,6 +12,7 @@ export interface GenerationDefaults {
   fitLevel?: FitLevel;
   pageLimit?: PageLimit;
   fillLastPage?: boolean;
+  highEffort?: boolean;
 }
 
 /** Panel preferences worth remembering, small enough to sync. */
