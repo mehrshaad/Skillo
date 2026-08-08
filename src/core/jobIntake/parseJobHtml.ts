@@ -32,6 +32,7 @@ function parseJsonLd(doc: Document): ParsedJob | null {
       location: jsonLdLocation(posting),
       seniority: str(posting.experienceRequirements) || undefined,
       employmentType: normalizeEmploymentType(posting.employmentType),
+      salary: jsonLdSalary(posting),
       descriptionText: description,
     };
   }
@@ -67,6 +68,60 @@ function jsonLdLocation(posting: Record<string, unknown>): string {
     .join(', ');
 }
 
+/** Most postings state no pay. Absent must stay absent — never "unknown". */
+function jsonLdSalary(posting: Record<string, unknown>): string | undefined {
+  const base = asRecord(posting.baseSalary);
+  if (!base) return undefined;
+
+  const value = asRecord(base.value) ?? base;
+  const min = num(value.minValue);
+  const max = num(value.maxValue);
+  const single = num(value.value);
+
+  const amount =
+    min !== null && max !== null && min !== max
+      ? `${money(min)}–${money(max)}`
+      : money(min ?? max ?? single);
+  if (!amount) return undefined;
+
+  const currency = symbolFor(str(base.currency) || str(value.currency));
+  const period = periodFor(str(value.unitText));
+
+  return `${currency}${amount}${period}`;
+}
+
+const SYMBOLS: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', CAD: 'CA$', AUD: 'A$' };
+
+function symbolFor(code: string): string {
+  if (!code) return '';
+  return SYMBOLS[code.toUpperCase()] ?? `${code.toUpperCase()} `;
+}
+
+function periodFor(unitText: string): string {
+  const unit = unitText.toUpperCase();
+  if (unit === 'YEAR') return ' / year';
+  if (unit === 'MONTH') return ' / month';
+  if (unit === 'WEEK') return ' / week';
+  if (unit === 'DAY') return ' / day';
+  if (unit === 'HOUR') return ' / hour';
+  return '';
+}
+
+/** Thousands separators, and no decimals on a salary. */
+function money(value: number | null): string {
+  if (value === null) return '';
+  return Math.round(value).toLocaleString('en-US');
+}
+
+function num(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(/[, ]/g, ''));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
 function normalizeEmploymentType(value: unknown): string | undefined {
   const raw = Array.isArray(value) ? value.join(', ') : str(value);
   if (!raw) return undefined;
@@ -93,6 +148,7 @@ const SELECTORS = {
   company: ['.topcard__org-name-link', '.topcard__flavor--black-link', 'a[data-tracking-control-name*="topcard-org-name"]'],
   location: ['.topcard__flavor--bullet', '.topcard__flavor.topcard__flavor--bullet'],
   description: ['.show-more-less-html__markup', '.description__text', '.jobs-description__container', '.jobs-box__html-content'],
+  salary: ['.compensation__salary', '.salary.compensation__salary', '.compensation__salary-range'],
 } as const;
 
 function parseSemantic(doc: Document): ParsedJob | null {
@@ -111,6 +167,7 @@ function parseSemantic(doc: Document): ParsedJob | null {
     seniority: criteria['seniority level'],
     employmentType: criteria['employment type'],
     workplaceType: criteria['workplace type'],
+    salary: textOf(pick(doc, SELECTORS.salary)) || undefined,
     descriptionText,
   };
 }

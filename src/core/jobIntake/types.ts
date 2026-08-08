@@ -9,6 +9,8 @@ export interface JobPosting {
   seniority?: string;
   employmentType?: string;
   workplaceType?: string;
+  /** Already formatted for display, e.g. "$120,000–150,000 / year". Usually absent. */
+  salary?: string;
   /** Plain text, whitespace-normalized. */
   descriptionText: string;
   source: JobSource;

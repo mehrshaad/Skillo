@@ -21,8 +21,41 @@ export function JobProfileCard({ profile }: { profile: JobProfile }) {
     });
   };
 
+  // Pay first, then what kind of contract it is: the two things that decide
+  // whether the rest is worth reading. Anything the posting did not say is left
+  // out entirely rather than shown as unknown.
+  const details = [
+    { label: 'Salary', value: profile.salary },
+    { label: 'Contract', value: profile.employmentType },
+    { label: 'Workplace', value: profile.workplaceType },
+    { label: 'Seniority', value: profile.seniority },
+    { label: 'Location', value: profile.location },
+  ].filter((d) => d.value?.trim());
+
   return (
     <div className="space-y-4">
+      {details.length > 0 && (
+        <section className="space-y-1">
+          <SectionHeader>The offer</SectionHeader>
+          <dl className="divide-y divide-rule overflow-hidden rounded border border-rule bg-paper-sunk">
+            {details.map(({ label, value }) => (
+              <div key={label} className="flex items-baseline gap-3 px-2.5 py-1.5">
+                <dt className="w-20 shrink-0 font-mono text-[10px] uppercase tracking-wide text-muted">
+                  {label}
+                </dt>
+                <dd
+                  className={`text-xs ${
+                    label === 'Salary' ? 'font-mono font-bold text-proof' : 'text-ink'
+                  }`}
+                >
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
       <section className="space-y-1.5">
         <SectionHeader>What this employer wants</SectionHeader>
         <p className="text-xs leading-relaxed text-ink">{profile.summaryForTailoring}</p>

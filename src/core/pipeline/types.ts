@@ -3,6 +3,11 @@ export interface JobProfile {
   title: string;
   company: string;
   location: string;
+  /** What it pays, when the posting says. Empty far more often than not. */
+  salary: string;
+  /** Full-time, contract, internship — whatever the posting calls it. */
+  employmentType: string;
+  workplaceType: string;
   seniority: string;
   mustHaveSkills: string[];
   niceToHaveSkills: string[];

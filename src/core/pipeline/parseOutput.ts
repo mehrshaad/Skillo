@@ -54,7 +54,16 @@ export function extractJsonObject(text: string): unknown {
   );
 }
 
-const STRING_KEYS = ['title', 'company', 'location', 'seniority', 'summaryForTailoring'] as const;
+const STRING_KEYS = [
+  'title',
+  'company',
+  'location',
+  'salary',
+  'employmentType',
+  'workplaceType',
+  'seniority',
+  'summaryForTailoring',
+] as const;
 const ARRAY_KEYS = [
   'mustHaveSkills',
   'niceToHaveSkills',

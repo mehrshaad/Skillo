@@ -8,7 +8,7 @@ import type { JobProfile } from './types';
  */
 
 export const ANALYZE_SYSTEM_PROMPT = `You are an expert technical recruiter and resume strategist. Analyze the job posting provided by the user and return ONLY a JSON object — no markdown fences, no commentary — with exactly these keys:
-"title" (string), "company" (string), "location" (string), "seniority" (string), "mustHaveSkills" (string[]), "niceToHaveSkills" (string[]), "responsibilities" (string[], max 8, condensed), "toolsAndTech" (string[]), "atsKeywords" (string[], the exact terms an ATS or reviewer would scan for, including variants like "CI/CD" vs "continuous integration"), "softSkills" (string[]), "summaryForTailoring" (string, 3-5 sentences: what this employer actually values and what a tailored resume should emphasize).
+"title" (string), "company" (string), "location" (string), "salary" (string: what it pays, exactly as the posting states it, e.g. "$120,000–150,000 / year" or "€55k–65k"; read it out of the description body if there is no structured field; "" if the posting genuinely does not say — never guess or estimate a market rate), "employmentType" (string: full-time, part-time, contract, internship, temporary — "" if not stated), "workplaceType" (string: remote, hybrid, on-site — "" if not stated), "seniority" (string), "mustHaveSkills" (string[]), "niceToHaveSkills" (string[]), "responsibilities" (string[], max 8, condensed), "toolsAndTech" (string[]), "atsKeywords" (string[], the exact terms an ATS or reviewer would scan for, including variants like "CI/CD" vs "continuous integration"), "softSkills" (string[]), "summaryForTailoring" (string, 3-5 sentences: what this employer actually values and what a tailored resume should emphasize).
 If a field is not determinable, use "" or []. Do not invent information not present in the posting.`;
 
 export function buildAnalyzeUserPrompt(job: JobPosting): string {
@@ -18,6 +18,10 @@ export function buildAnalyzeUserPrompt(job: JobPosting): string {
     job.location && `Location: ${job.location}`,
     job.seniority && `Seniority (from LinkedIn): ${job.seniority}`,
     job.employmentType && `Employment type: ${job.employmentType}`,
+    job.workplaceType && `Workplace type: ${job.workplaceType}`,
+    // Structured pay when the posting carried it; otherwise the model reads the
+    // description, which is where most postings bury it.
+    job.salary && `Compensation (from the posting): ${job.salary}`,
   ]
     .filter(Boolean)
     .join('\n');

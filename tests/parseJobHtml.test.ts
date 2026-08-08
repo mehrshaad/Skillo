@@ -84,6 +84,41 @@ describe('parseJobDocument — JSON-LD', () => {
     expect(job?.title).toBe('Staff Platform Engineer');
   });
 
+  const withSalary = (baseSalary: unknown) => parse(jsonLd({ ...posting, baseSalary }));
+
+  it('formats a salary range the way the posting means it', () => {
+    const job = withSalary({
+      '@type': 'MonetaryAmount',
+      currency: 'USD',
+      value: { '@type': 'QuantitativeValue', minValue: 120000, maxValue: 150000, unitText: 'YEAR' },
+    });
+    expect(job!.salary).toBe('$120,000–150,000 / year');
+  });
+
+  it('handles a single figure, an hourly rate, and an unknown currency', () => {
+    expect(
+      withSalary({ currency: 'EUR', value: { value: 65000, unitText: 'YEAR' } })!.salary,
+    ).toBe('€65,000 / year');
+    expect(
+      withSalary({ currency: 'GBP', value: { minValue: 45, maxValue: 60, unitText: 'HOUR' } })!
+        .salary,
+    ).toBe('£45–60 / hour');
+    // A currency with no symbol still reads correctly rather than disappearing.
+    expect(withSalary({ currency: 'SEK', value: { value: 600000, unitText: 'YEAR' } })!.salary)
+      .toBe('SEK 600,000 / year');
+  });
+
+  it('collapses a range whose ends are equal', () => {
+    const job = withSalary({ currency: 'USD', value: { minValue: 90000, maxValue: 90000 } });
+    expect(job!.salary).toBe('$90,000');
+  });
+
+  it('leaves salary absent when the posting does not state one', () => {
+    // Most postings say nothing. Absent must stay absent, never "unknown".
+    expect(parse(jsonLd(posting))!.salary).toBeUndefined();
+    expect(withSalary({ currency: 'USD', value: {} })!.salary).toBeUndefined();
+  });
+
   it('falls through to selectors when the JSON-LD is malformed', () => {
     const html = `<html><head><script type="application/ld+json">{ not json </script></head>
       <body><h2 class="topcard__title">Fallback Title</h2>
