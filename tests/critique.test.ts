@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ErrorCode } from '@/core/errors';
+import { writeCoverLetter } from '@/core/pipeline/coverLetter';
 import {
+  COVER_LETTER_SYSTEM_PROMPT,
   CRITIQUE_SYSTEM_PROMPT,
   buildRevisionPrompt,
   type Critique,
@@ -151,5 +154,54 @@ describe('reviseFromCritique', () => {
     expect(messages[3]!.content).toContain('"led a team of 12"');
     // The rules still apply on the third pass.
     expect(messages[0]!.content).toContain('NEVER invent employers');
+  });
+});
+
+describe('COVER_LETTER_SYSTEM_PROMPT', () => {
+  it('bans the openings and adjectives that get letters binned', () => {
+    expect(COVER_LETTER_SYSTEM_PROMPT).toContain('I am writing to express my interest');
+    expect(COVER_LETTER_SYSTEM_PROMPT).toContain('passionate');
+    expect(COVER_LETTER_SYSTEM_PROMPT).toContain('proven track record');
+  });
+
+  it('inherits the no-fabrication rule', () => {
+    // A letter that invents a motivation is a trap in an interview, not a flourish.
+    expect(COVER_LETTER_SYSTEM_PROMPT).toContain('Never claim anything that is not in the resume');
+    expect(COVER_LETTER_SYSTEM_PROMPT).toMatch(/leave it out rather than inventing/);
+  });
+
+  it('asks for prose only, with no placeholders to forget to fill in', () => {
+    expect(COVER_LETTER_SYSTEM_PROMPT).toContain('Return ONLY the letter');
+    expect(COVER_LETTER_SYSTEM_PROMPT).toContain('[Company]');
+  });
+});
+
+describe('writeCoverLetter', () => {
+  it('writes from the tailored resume as plain text, not the LaTeX source', async () => {
+    const complete = reply('Dear hiring team,\n\n' + 'w'.repeat(400));
+    await writeCoverLetter({
+      provider: { id: 'openai', complete, test: async () => {} },
+      model: 'test-model',
+      job,
+      latex: String.raw`\section{Experience} Ran the Postgres migration for 40 services.`,
+      notes: '',
+    });
+
+    const sent = complete.mock.calls[0]![0].messages[1]!.content;
+    expect(sent).toContain('Ran the Postgres migration for 40 services.');
+    expect(sent).not.toContain(String.raw`\section`);
+  });
+
+  it('refuses a reply too short to be a letter', async () => {
+    const complete = reply('Sure, here you go!');
+    await expect(
+      writeCoverLetter({
+        provider: { id: 'openai', complete, test: async () => {} },
+        model: 'test-model',
+        job,
+        latex: 'x',
+        notes: '',
+      }),
+    ).rejects.toMatchObject({ code: ErrorCode.PROVIDER_REQUEST_FAILED });
   });
 });

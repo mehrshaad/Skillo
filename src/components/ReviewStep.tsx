@@ -8,6 +8,7 @@ import { MatchScoreCard } from './MatchScoreCard';
 import { AtsScoreCard } from './AtsScoreCard';
 import { PageFillReport } from './PageFillReport';
 import { ChangeSummary } from './ChangeSummary';
+import { CoverLetter } from './CoverLetter';
 import { Button, Chip, ErrorNote, Note, SectionHeader, Spinner, SwapText, TextArea } from './ui';
 import { applyRevision } from '@/lib/applyRevision';
 
@@ -243,6 +244,8 @@ export function ReviewStep({ state }: { state: WizardState }) {
       />
 
       <DiffView oldText={resume.latex} newText={result.latex} />
+
+      <CoverLetter company={state.job?.company ?? ''} />
 
       <section className="flex flex-wrap gap-2 border-t border-rule pt-3">
         {overleafTabId !== undefined && (

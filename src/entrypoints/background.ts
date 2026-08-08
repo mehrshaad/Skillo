@@ -29,6 +29,7 @@ import {
   reviseFromCritique,
   tailorResume,
 } from '@/core/pipeline/tailorResume';
+import { writeCoverLetter } from '@/core/pipeline/coverLetter';
 import { scoreMatch } from '@/core/pipeline/scoreMatch';
 import { atsScore } from '@/core/pipeline/atsScore';
 import { latexToPlainText } from '@/core/latexText';
@@ -205,6 +206,24 @@ const handlers: HandlerMap = {
     }
     await recordObservation(latex, msg.actualPages, true);
     return { ok: true } as const;
+  },
+
+  'pipeline/coverLetter': async () => {
+    const state = await getState();
+    if (!state.jobProfile || !state.generation.result) {
+      throw appError(ErrorCode.INTERNAL, 'Generate a resume before writing a letter for it.');
+    }
+
+    const { provider, model } = await getActiveProvider();
+    const letter = await writeCoverLetter({
+      provider,
+      model,
+      job: state.jobProfile,
+      latex: state.generation.result.latex,
+      notes: state.notes,
+      candidate: await getProfile(),
+    });
+    return { letter };
   },
 
   'pipeline/tailor': async (msg) => runGeneration(msg.notes, null),

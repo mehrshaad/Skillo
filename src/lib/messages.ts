@@ -44,6 +44,8 @@ export interface MessageMap {
   'pipeline/analyze': { req: {}; res: WizardState };
   'pipeline/tailor': { req: { notes: string }; res: WizardState };
   'pipeline/regenerate': { req: { feedback: string }; res: WizardState };
+  /** On demand, so it costs nothing on runs that do not want one. */
+  'pipeline/coverLetter': { req: {}; res: { letter: string } };
   'provider/test': { req: { providerId: ProviderId }; res: { ok: true } };
   'bridge/status': { req: {}; res: BridgeStatus };
   'provider/listModels': { req: { providerId: ProviderId }; res: ModelInfo[] };

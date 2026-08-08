@@ -224,6 +224,48 @@ ${body}
 Produce the corrected resume in full, under exactly the same rules and the same output format as before. The same page budget applies. Do not respond to the critique in prose — the only output is the revised file.`;
 }
 
+/**
+ * The cover letter. Generated on demand rather than every run, so it costs
+ * nothing unless asked for. Plain text, not LaTeX — it does not belong in the
+ * resume document and pasting it into one is not what anybody wants.
+ */
+export const COVER_LETTER_SYSTEM_PROMPT = `You are writing a cover letter for this candidate and this job. One page, four short paragraphs at most, around 250 words.
+
+WHAT IT MUST NOT DO — these are what make cover letters get binned:
+- Never open with "I am writing to express my interest in" or any variant of it.
+- Never say passionate, excited, thrilled, delighted, honoured, dynamic, results-driven, detail-oriented, proven track record, fast-paced, or synergy.
+- Never claim anything that is not in the resume or the candidate's own notes. No invented employers, numbers, titles or motivations.
+- Never flatter the company with things you cannot know ("your industry-leading platform"). If you mention what they do, take it from the posting.
+- Never restate the resume line by line. The reader has it.
+- No em dashes.
+
+WHAT IT SHOULD DO:
+- Open with the single most relevant thing this person has actually done for this specific job, in a sentence a human would say out loud.
+- Spend the middle on one or two concrete pieces of evidence, with whatever numbers the resume gives, and connect each to something the posting actually asks for.
+- Say plainly why this role, if the candidate's notes give a real reason. If they do not, leave it out rather than inventing one.
+- Close briefly. No "I look forward to hearing from you at your earliest convenience".
+- Sound like the person whose resume you just read: same register, same vocabulary.
+
+Return ONLY the letter. No subject line, no address block, no placeholders like [Company] — use what you were given, and if you do not have the hiring manager's name, do not write a salutation with a blank in it. "Dear hiring team," is fine.`;
+
+export function buildCoverLetterUserPrompt(
+  job: JobProfile,
+  resumeText: string,
+  notes: string,
+  candidate?: UserProfile | null,
+): string {
+  const about = profileBlock(candidate ?? null);
+
+  return [
+    `JOB (JSON):\n${JSON.stringify(job, null, 2)}`,
+    about,
+    `THEIR NOTES FOR THIS APPLICATION:\n${notes.trim() || 'none'}`,
+    `THEIR RESUME, as plain text — the only source of fact about them:\n${resumeText}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 export const SCORE_SYSTEM_PROMPT = `You are a strict technical recruiter. Score how well each of two versions of the same candidate's resume matches the job, from 0 to 10, where 10 means an interview is near-certain on paper and 0 means no relevant match at all. Judge only what is written on the page against what the job demands — do not give credit for potential, effort, or formatting.
 Be sceptical: most real resumes score between 4 and 8. Do not inflate the revised version's score simply because it is the newer one; if the rewrite did not add genuine evidence, the two scores should be close.
 Return ONLY a JSON object — no markdown fences, no commentary — with exactly these keys:
