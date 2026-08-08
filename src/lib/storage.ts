@@ -29,6 +29,7 @@ export interface Settings {
     openrouter?: ProviderConfig;
     openai?: ProviderConfig;
     anthropic?: ProviderConfig;
+    huggingface?: ProviderConfig;
     claudeCode?: { enabled: boolean };
   };
 }
@@ -89,7 +90,7 @@ interface Secrets {
 }
 
 /** Providers that authenticate with a key; Claude Code has none. */
-const KEYED_PROVIDERS = ['openrouter', 'openai', 'anthropic'] as const;
+const KEYED_PROVIDERS = ['openrouter', 'openai', 'anthropic', 'huggingface'] as const;
 
 /** storage.sync can be unavailable or over quota; local is always there. */
 async function readSynced(): Promise<SyncedSettings | undefined> {

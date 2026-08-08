@@ -10,6 +10,8 @@ import {
   type HistoryEntry,
 } from '@/lib/storage';
 import { INITIAL_STATE, getState, patchState, resetState } from '@/lib/state';
+import { PROVIDER_META } from '@/core/providers/registry';
+import { PROVIDER_IDS } from '@/core/providers/types';
 
 const entry = (id: string): HistoryEntry => ({
   id,
@@ -76,15 +78,24 @@ describe('settings storage split', () => {
   const rawLocal = async () =>
     (await fakeBrowser.storage.local.get(null)) as Record<string, unknown>;
 
-  it('never lets an API key reach sync storage', async () => {
-    await saveSettings({
-      activeProviderId: 'openrouter',
-      providers: { openrouter: { apiKey: 'sk-secret-value', model: 'some/model' } },
-    });
+  it('never lets an API key reach sync storage, for any provider', async () => {
+    // Looped rather than spot-checked: sync round-trips through Google's
+    // servers, and a provider added later must not be able to leak quietly.
+    const keyed = PROVIDER_IDS.filter((id) => PROVIDER_META[id].needsKey);
+    expect(keyed.length).toBeGreaterThan(1);
 
-    // The whole sync area, serialized, must not contain the key anywhere.
-    expect(JSON.stringify(await rawSync())).not.toContain('sk-secret-value');
-    expect(JSON.stringify(await rawLocal())).toContain('sk-secret-value');
+    for (const id of keyed) {
+      fakeBrowser.reset();
+      const secret = `sk-secret-${id}`;
+      await saveSettings({
+        activeProviderId: id,
+        providers: { [id]: { apiKey: secret, model: 'some/model' } },
+      });
+
+      // The whole sync area, serialized, must not contain the key anywhere.
+      expect(JSON.stringify(await rawSync()), `${id} key leaked to sync`).not.toContain(secret);
+      expect(JSON.stringify(await rawLocal()), `${id} key was not stored`).toContain(secret);
+    }
   });
 
   it('puts the choices worth carrying between machines into sync', async () => {

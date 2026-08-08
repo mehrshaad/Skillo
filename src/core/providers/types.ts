@@ -1,4 +1,10 @@
-export const PROVIDER_IDS = ['openrouter', 'openai', 'anthropic', 'claude-code'] as const;
+export const PROVIDER_IDS = [
+  'openrouter',
+  'openai',
+  'anthropic',
+  'huggingface',
+  'claude-code',
+] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 /** What a keyed provider needs to run. Stored per provider so switching keeps both. */

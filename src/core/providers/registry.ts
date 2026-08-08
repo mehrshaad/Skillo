@@ -36,6 +36,12 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     keyUrl: 'https://console.anthropic.com/settings/keys',
     needsKey: true,
   },
+  huggingface: {
+    id: 'huggingface',
+    label: 'Hugging Face',
+    keyUrl: 'https://huggingface.co/settings/tokens',
+    needsKey: true,
+  },
   'claude-code': {
     id: 'claude-code',
     label: 'Claude Code (local)',
@@ -50,10 +56,15 @@ export interface ResolvedProvider {
   meta: ProviderMeta;
 }
 
-/** Anthropic speaks its own wire format; the rest are OpenAI-compatible. */
+/**
+ * Anthropic speaks its own wire format; the rest are OpenAI-compatible.
+ * Hugging Face's Inference Providers router is too, including `/models`, so it
+ * gets the model picker for free.
+ */
 const BASE_URL: Partial<Record<ProviderId, string>> = {
   openrouter: 'https://openrouter.ai/api/v1',
   openai: 'https://api.openai.com/v1',
+  huggingface: 'https://router.huggingface.co/v1',
 };
 
 const ATTRIBUTION = { referer: 'https://github.com/mehrshaad/Skillo', title: 'Skillo' };
