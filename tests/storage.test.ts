@@ -3,6 +3,7 @@ import { fakeBrowser } from 'wxt/testing/fake-browser';
 import {
   addHistoryEntry,
   clearHistory,
+  deleteHistoryEntry,
   getHistory,
   getSettings,
   saveSettings,
@@ -170,13 +171,49 @@ describe('history storage', () => {
     expect((await getHistory()).map((e) => e.id)).toEqual(['2', '1']);
   });
 
-  it('caps at 20 entries, dropping the oldest', async () => {
-    for (let i = 1; i <= 25; i++) await addHistoryEntry(entry(String(i)));
+  it('caps at 100 entries, dropping the oldest', async () => {
+    for (let i = 1; i <= 105; i++) await addHistoryEntry(entry(String(i)));
 
     const history = await getHistory();
-    expect(history).toHaveLength(20);
-    expect(history[0]!.id).toBe('25');
+    expect(history).toHaveLength(100);
+    expect(history[0]!.id).toBe('105');
     expect(history.at(-1)!.id).toBe('6');
+  });
+
+  it('never evicts a starred run, however old it gets', async () => {
+    // Starring is the user saying "keep this one"; a cap that ignored it would
+    // make the star a lie.
+    await addHistoryEntry({ ...entry('keeper'), starred: true });
+    for (let i = 1; i <= 120; i++) await addHistoryEntry(entry(String(i)));
+
+    const history = await getHistory();
+    expect(history.find((e) => e.id === 'keeper')).toBeDefined();
+    // The star sits outside the cap rather than eating into it.
+    expect(history.filter((e) => !e.starred)).toHaveLength(100);
+  });
+
+  it('deletes one run without touching the others', async () => {
+    await addHistoryEntry(entry('1'));
+    await addHistoryEntry(entry('2'));
+    await addHistoryEntry(entry('3'));
+
+    await deleteHistoryEntry('2');
+
+    expect((await getHistory()).map((e) => e.id)).toEqual(['3', '1']);
+  });
+
+  it('reads entries written before starring existed', async () => {
+    // An entry from an older version has no starred/label/note at all.
+    const { starred, label, note, ...legacy } = { ...entry('old'), starred: true };
+    void starred;
+    void label;
+    void note;
+    await fakeBrowser.storage.local.set({ history: [legacy] });
+
+    const history = await getHistory();
+    expect(history).toHaveLength(1);
+    expect(history[0]!.starred).toBeUndefined();
+    expect(history[0]!.id).toBe('old');
   });
 
   it('flips the applied flag on one entry only', async () => {

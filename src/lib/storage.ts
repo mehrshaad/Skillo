@@ -49,6 +49,12 @@ export interface HistoryEntry {
   pageLimit?: PageLimit;
   match?: MatchScore;
   ats?: { before: AtsResult; after: AtsResult };
+  /** Kept regardless of the cap. */
+  starred?: boolean;
+  /** A name the user gave this run, shown instead of the job title. */
+  label?: string;
+  /** Anything worth remembering about it: who referred you, what you said. */
+  note?: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -75,7 +81,11 @@ const SECRETS_KEY = 'secrets';
 /** Pre-split blob: the whole of Settings, including keys, in local. */
 const LEGACY_KEY = 'settings';
 const HISTORY_KEY = 'history';
-const HISTORY_LIMIT = 20;
+/**
+ * Raised from 20: runs are the record of where you have applied, and silently
+ * dropping the oldest was losing that. Starred runs sit outside this entirely.
+ */
+const HISTORY_LIMIT = 100;
 
 interface SyncedSettings {
   activeProviderId: ProviderId | null;
@@ -211,10 +221,45 @@ export async function getHistory(): Promise<HistoryEntry[]> {
   return (raw[HISTORY_KEY] as HistoryEntry[] | undefined) ?? [];
 }
 
+/**
+ * Newest first, capped — except that a starred run is never evicted. Starring
+ * is the user saying "keep this one", and a cap that ignores that would make
+ * the star meaningless.
+ */
 export async function addHistoryEntry(entry: HistoryEntry): Promise<void> {
   const history = await getHistory();
-  const next = [entry, ...history].slice(0, HISTORY_LIMIT);
-  await browser.storage.local.set({ [HISTORY_KEY]: next });
+  await browser.storage.local.set({ [HISTORY_KEY]: evict([entry, ...history]) });
+}
+
+function evict(history: HistoryEntry[]): HistoryEntry[] {
+  if (history.length <= HISTORY_LIMIT) return history;
+
+  const kept: HistoryEntry[] = [];
+  let unstarred = 0;
+
+  for (const entry of history) {
+    if (entry.starred) {
+      kept.push(entry);
+      continue;
+    }
+    if (unstarred < HISTORY_LIMIT) {
+      kept.push(entry);
+      unstarred++;
+    }
+  }
+
+  return kept;
+}
+
+export async function deleteHistoryEntry(id: string): Promise<void> {
+  const history = await getHistory();
+  await browser.storage.local.set({ [HISTORY_KEY]: history.filter((e) => e.id !== id) });
+}
+
+/** Roughly how much room history is taking, for the line in the history panel. */
+export async function historyBytes(): Promise<number> {
+  const raw = await browser.storage.local.get(HISTORY_KEY);
+  return JSON.stringify(raw[HISTORY_KEY] ?? []).length;
 }
 
 export async function updateHistoryEntry(

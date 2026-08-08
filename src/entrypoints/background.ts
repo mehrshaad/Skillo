@@ -11,7 +11,13 @@ import {
 import type { JobPosting } from '@/core/jobIntake/types';
 import { buildProvider, getActiveProvider } from '@/lib/providers/registry';
 import { getBridgeStatus } from '@/lib/providers/claudeCode';
-import { addHistoryEntry, getSettings, saveSettings, updateHistoryEntry } from '@/lib/storage';
+import {
+  addHistoryEntry,
+  getHistory,
+  getSettings,
+  saveSettings,
+  updateHistoryEntry,
+} from '@/lib/storage';
 import { hashText } from '@/core/hash';
 import { computePageBudget } from '@/core/pipeline/pageBudget';
 import { getDensityModel, recordObservation } from '@/lib/pipeline/densityStore';
@@ -45,6 +51,41 @@ const handlers: HandlerMap = {
   'state/reset': async () => {
     await resetState();
     return patchState(await generationDefaults());
+  },
+
+  /**
+   * Puts a past run back on the review screen. The resume comes back as pasted
+   * text rather than an Overleaf source: the tab it was read from is long gone,
+   * and writing into a document we cannot verify is exactly what the apply
+   * guard exists to prevent. Re-pick the project on the resume step to apply.
+   */
+  'history/reopen': async (msg) => {
+    const entry = (await getHistory()).find((e) => e.id === msg.id);
+    if (!entry) {
+      throw appError(ErrorCode.INTERNAL, 'That run is no longer in your history.');
+    }
+
+    const current = await getState();
+    return patchState({
+      step: 'review',
+      job: entry.job,
+      jobProfile: entry.jobProfile,
+      historyId: entry.id,
+      appliedAt: undefined,
+      fitLevel: entry.fitLevel ?? current.fitLevel,
+      pageLimit: entry.pageLimit ?? current.pageLimit,
+      resume: {
+        kind: 'paste',
+        latex: entry.originalLatex,
+        readAt: entry.timestamp,
+      },
+      generation: {
+        status: 'done',
+        result: { latex: entry.revisedLatex, changeSummary: entry.changeSummary },
+        match: entry.match,
+        ats: entry.ats,
+      },
+    });
   },
 
   'job/fetch': async (msg) => acceptJob(await fetchJobFromUrl(msg.url)),

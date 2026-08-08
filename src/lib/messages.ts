@@ -47,6 +47,8 @@ export interface MessageMap {
   'provider/test': { req: { providerId: ProviderId }; res: { ok: true } };
   'bridge/status': { req: {}; res: BridgeStatus };
   'provider/listModels': { req: { providerId: ProviderId }; res: ModelInfo[] };
+  /** Loads a past run back into the wizard so it can be read, chatted with or regenerated. */
+  'history/reopen': { req: { id: string }; res: WizardState };
   'state/get': { req: {}; res: WizardState };
   'state/update': { req: { patch: Partial<WizardState> }; res: WizardState };
   'state/reset': { req: {}; res: WizardState };
