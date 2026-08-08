@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { buildDiff, diffStats } from '@/lib/diff';
+import { buildDiff, diffStats } from '@/core/diff';
 import { SectionHeader } from './ui';
 
 /**

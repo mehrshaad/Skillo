@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseBullets } from '@/lib/changeSummary';
+import { parseBullets } from '@/core/changeSummary';
 
 describe('parseBullets', () => {
   it('splits a dash list', () => {

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ErrorCode } from '@/lib/errors';
-import { buildDiff, diffStats } from '@/lib/diff';
-import { bodyChars, computePageBudget } from '@/lib/pipeline/pageBudget';
-import { regenerateResume, tailorResume } from '@/lib/pipeline/tailorResume';
-import type { JobProfile } from '@/lib/pipeline/types';
-import type { LLMProvider } from '@/lib/providers/types';
+import { ErrorCode } from '@/core/errors';
+import { buildDiff, diffStats } from '@/core/diff';
+import { bodyChars, computePageBudget } from '@/core/pipeline/pageBudget';
+import { regenerateResume, tailorResume } from '@/core/pipeline/tailorResume';
+import type { JobProfile } from '@/core/pipeline/types';
+import type { LLMProvider } from '@/core/providers/types';
 
 const ORIGINAL = `\\documentclass{article}
 \\begin{document}

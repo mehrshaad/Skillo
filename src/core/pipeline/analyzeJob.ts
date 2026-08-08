@@ -1,6 +1,6 @@
-import { ErrorCode, appError } from '@/lib/errors';
-import type { JobPosting } from '@/lib/jobIntake/types';
-import type { ChatMessage, LLMProvider } from '@/lib/providers/types';
+import { ErrorCode, appError } from '@/core/errors';
+import type { JobPosting } from '@/core/jobIntake/types';
+import type { ChatMessage, LLMProvider } from '@/core/providers/types';
 import { ANALYZE_SYSTEM_PROMPT, JSON_RETRY_NUDGE, buildAnalyzeUserPrompt } from './prompts';
 import { extractJsonObject, toJobProfile } from './parseOutput';
 import type { JobProfile } from './types';

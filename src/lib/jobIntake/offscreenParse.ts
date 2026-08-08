@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import { sendMessage } from '@/lib/messages';
-import type { ParsedJob } from './types';
+import type { ParsedJob } from '@/core/jobIntake/types';
 
 const OFFSCREEN_PATH = 'offscreen.html';
 

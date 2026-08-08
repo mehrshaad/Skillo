@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ErrorCode, appError, type AppError } from '@/lib/errors';
+import { ErrorCode, appError, type AppError } from '@/core/errors';
 import { sendMessage, type OverleafTabInfo } from '@/lib/messages';
-import { LARGE_RESUME_CHARS, findIncludedFiles, looksLikeLatex } from '@/lib/resumeInput';
+import { LARGE_RESUME_CHARS, findIncludedFiles, looksLikeLatex } from '@/core/resumeInput';
 import type { ResumeSource } from '@/lib/state';
 import { SectionEditor } from './SectionEditor';
 import { PageFillReport } from './PageFillReport';

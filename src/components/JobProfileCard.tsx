@@ -1,5 +1,5 @@
 import { sendMessage } from '@/lib/messages';
-import type { JobProfile } from '@/lib/pipeline/types';
+import type { JobProfile } from '@/core/pipeline/types';
 import { SectionHeader } from './ui';
 
 /** The keyword lists the user can prune before tailoring runs on them. */

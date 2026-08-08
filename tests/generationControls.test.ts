@@ -5,9 +5,9 @@ import {
   computePageBudget,
   projectedPages,
   type PageBudget,
-} from '@/lib/pipeline/pageBudget';
-import { buildTailorSystemPrompt } from '@/lib/pipeline/prompts';
-import { validateLatex } from '@/lib/pipeline/validateLatex';
+} from '@/core/pipeline/pageBudget';
+import { buildTailorSystemPrompt } from '@/core/pipeline/prompts';
+import { validateLatex } from '@/core/pipeline/validateLatex';
 import { readPageCount } from '@/lib/overleaf/pageCount';
 
 const FABRICATION_RULE =

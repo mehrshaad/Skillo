@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { browser } from 'wxt/browser';
-import { ErrorCode, appError, type AppError } from '@/lib/errors';
+import { ErrorCode, appError, type AppError } from '@/core/errors';
 import { sendMessage } from '@/lib/messages';
 import type { BridgeStatus } from '@/lib/providers/claudeCode';
-import { PROVIDER_META } from '@/lib/providers/registry';
-import { PROVIDER_IDS, type ModelInfo, type ProviderId } from '@/lib/providers/types';
+import { PROVIDER_META } from '@/core/providers/registry';
+import { PROVIDER_IDS, type ModelInfo, type ProviderId } from '@/core/providers/types';
 import { getSettings, saveSettings, type Settings as SettingsData } from '@/lib/storage';
 import { Button, Chip, ErrorNote, Note, SectionHeader, Spinner, SwapText, TextInput } from './ui';
 

@@ -1,5 +1,5 @@
-import { ErrorCode, appError, toAppError } from '@/lib/errors';
-import { hashText } from '@/lib/hash';
+import { ErrorCode, appError, toAppError } from '@/core/errors';
+import { hashText } from '@/core/hash';
 import {
   OVERLEAF_ORIGIN,
   RESPONSE_SOURCE,

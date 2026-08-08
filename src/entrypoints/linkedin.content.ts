@@ -1,5 +1,5 @@
 import { browser } from 'wxt/browser';
-import { toAppError } from '@/lib/errors';
+import { toAppError } from '@/core/errors';
 import { fail, ok } from '@/lib/messages';
 import { extractFromLivePage } from '@/lib/jobIntake/domExtract';
 

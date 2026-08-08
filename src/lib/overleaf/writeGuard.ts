@@ -1,4 +1,4 @@
-import { hashText } from '@/lib/hash';
+import { hashText } from '@/core/hash';
 
 /**
  * Decides whether it is safe to replace the Overleaf document.

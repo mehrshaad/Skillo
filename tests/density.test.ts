@@ -1,14 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import {
-  getDensityModel,
-  learn,
-  recordObservation,
-  templateKey,
-  type DensityObservation,
-} from '@/lib/pipeline/density';
-import { computePageBudget } from '@/lib/pipeline/pageBudget';
-import { validateLatex } from '@/lib/pipeline/validateLatex';
+import { learn, templateKey, type DensityObservation } from '@/core/pipeline/density';
+import { getDensityModel, recordObservation } from '@/lib/pipeline/densityStore';
+import { computePageBudget } from '@/core/pipeline/pageBudget';
+import { validateLatex } from '@/core/pipeline/validateLatex';
 
 const obs = (bodyChars: number, pages: number): DensityObservation => ({
   bodyChars,

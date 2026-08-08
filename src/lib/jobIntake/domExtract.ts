@@ -1,6 +1,6 @@
-import { ErrorCode, appError } from '@/lib/errors';
-import { parseJobDocument } from './parseJobHtml';
-import type { ParsedJob } from './types';
+import { ErrorCode, appError } from '@/core/errors';
+import { parseJobDocument } from '@/core/jobIntake/parseJobHtml';
+import type { ParsedJob } from '@/core/jobIntake/types';
 
 /** Below this we assume we grabbed page furniture rather than a real posting. */
 export const MIN_USABLE_DESCRIPTION = 300;

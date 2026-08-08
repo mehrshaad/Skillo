@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import type { AppError } from '@/lib/errors';
+import type { AppError } from '@/core/errors';
 
 /**
  * The panel's section headings. Sentence case with real contrast, because a

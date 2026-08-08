@@ -1,9 +1,9 @@
 import { browser, type Browser } from 'wxt/browser';
-import type { AppError } from './errors';
-import type { JobPosting } from './jobIntake/types';
-import type { JobProfile, MatchScore, TailorResult } from './pipeline/types';
-import type { AtsResult } from './pipeline/atsScore';
-import type { PageBudget } from './pipeline/pageBudget';
+import type { AppError } from '@/core/errors';
+import type { JobPosting } from '@/core/jobIntake/types';
+import type { JobProfile, MatchScore, TailorResult } from '@/core/pipeline/types';
+import type { AtsResult } from '@/core/pipeline/atsScore';
+import type { PageBudget } from '@/core/pipeline/pageBudget';
 
 export type WizardStep = 'job' | 'resume' | 'tailor' | 'review';
 

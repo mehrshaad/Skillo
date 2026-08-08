@@ -1,4 +1,4 @@
-import type { AppError } from '@/lib/errors';
+import type { AppError } from '@/core/errors';
 import type { OverleafDoc } from '@/lib/messages';
 
 /**

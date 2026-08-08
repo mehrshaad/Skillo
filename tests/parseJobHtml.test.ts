@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { htmlToText, parseJobDocument } from '@/lib/jobIntake/parseJobHtml';
+import { htmlToText, parseJobDocument } from '@/core/jobIntake/parseJobHtml';
 
 const fixture = (name: string) =>
   readFileSync(resolve(__dirname, 'fixtures/linkedin', name), 'utf8');

@@ -1,6 +1,6 @@
-import type { AppError } from '@/lib/errors';
+import type { AppError } from '@/core/errors';
 import { sendMessage } from '@/lib/messages';
-import { FIT_LEVEL_CAPTIONS, FIT_LEVEL_LABELS } from '@/lib/pipeline/prompts';
+import { FIT_LEVEL_CAPTIONS, FIT_LEVEL_LABELS } from '@/core/pipeline/prompts';
 import type { FitLevel, PageLimit, WizardState } from '@/lib/state';
 import { Button, ErrorNote, LevelBar, Note, SectionHeader, Spinner, TextArea, Toggle } from './ui';
 

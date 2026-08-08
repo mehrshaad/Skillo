@@ -8,7 +8,7 @@ import {
   sectionBody,
   type ResumeSection,
   type SectionedResume,
-} from '@/lib/latexSections';
+} from '@/core/latexSections';
 import { Button, SectionHeader, TextArea, TextInput } from './ui';
 
 /**

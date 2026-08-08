@@ -1,4 +1,4 @@
-import type { JobPosting } from '@/lib/jobIntake/types';
+import type { JobPosting } from '@/core/jobIntake/types';
 import type { PageBudget } from './pageBudget';
 import type { JobProfile } from './types';
 

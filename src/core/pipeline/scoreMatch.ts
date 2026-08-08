@@ -1,5 +1,5 @@
-import { ErrorCode, appError } from '@/lib/errors';
-import type { ChatMessage, LLMProvider } from '@/lib/providers/types';
+import { ErrorCode, appError } from '@/core/errors';
+import type { ChatMessage, LLMProvider } from '@/core/providers/types';
 import { extractJsonObject } from './parseOutput';
 import { SCORE_SYSTEM_PROMPT, buildScoreUserPrompt } from './prompts';
 import type { JobProfile, MatchScore } from './types';

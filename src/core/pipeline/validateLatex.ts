@@ -1,4 +1,4 @@
-import { bodyChars, stripLatexComments } from '@/lib/latexText';
+import { bodyChars, stripLatexComments } from '@/core/latexText';
 import type { PageBudget } from './pageBudget';
 
 export interface LatexValidation {

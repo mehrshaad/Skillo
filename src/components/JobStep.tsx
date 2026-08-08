@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import type { AppError } from '@/lib/errors';
+import type { AppError } from '@/core/errors';
 import { sendMessage } from '@/lib/messages';
-import type { JobPosting } from '@/lib/jobIntake/types';
-import type { JobProfile } from '@/lib/pipeline/types';
+import type { JobPosting } from '@/core/jobIntake/types';
+import type { JobProfile } from '@/core/pipeline/types';
 import { JobProfileCard } from './JobProfileCard';
 import { Button, Chip, ErrorNote, SectionHeader, Note, Spinner, TextArea, TextInput } from './ui';
 

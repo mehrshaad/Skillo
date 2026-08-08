@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { hashText } from '@/lib/hash';
-import { assembleSections, parseSections } from '@/lib/latexSections';
+import { hashText } from '@/core/hash';
+import { assembleSections, parseSections } from '@/core/latexSections';
 import { documentUnchanged } from '@/lib/overleaf/writeGuard';
 
 const RESUME = readFileSync(

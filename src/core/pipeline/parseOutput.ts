@@ -1,4 +1,4 @@
-import { ErrorCode, appError } from '@/lib/errors';
+import { ErrorCode, appError } from '@/core/errors';
 import type { JobProfile } from './types';
 
 /* ------------------------------------------------------------------- JSON */

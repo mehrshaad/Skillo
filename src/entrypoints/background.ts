@@ -1,5 +1,5 @@
 import { browser, type Browser } from 'wxt/browser';
-import { ErrorCode, toAppError, appError } from '@/lib/errors';
+import { ErrorCode, toAppError, appError } from '@/core/errors';
 import type { Message, MessageMap, MessageOf, MessageType, Result } from '@/lib/messages';
 import { ok, fail } from '@/lib/messages';
 import { INITIAL_STATE, getState, getStoredState, patchState, resetState, setState } from '@/lib/state';
@@ -8,19 +8,19 @@ import {
   extractFromActiveTab,
   fetchJobFromUrl,
 } from '@/lib/jobIntake/fetchJob';
-import type { JobPosting } from '@/lib/jobIntake/types';
+import type { JobPosting } from '@/core/jobIntake/types';
 import { buildProvider, getActiveProvider } from '@/lib/providers/registry';
 import { getBridgeStatus } from '@/lib/providers/claudeCode';
 import { addHistoryEntry, getSettings, saveSettings, updateHistoryEntry } from '@/lib/storage';
-import { hashText } from '@/lib/hash';
-import { computePageBudget } from '@/lib/pipeline/pageBudget';
-import { getDensityModel, recordObservation } from '@/lib/pipeline/density';
-import { analyzeJob } from '@/lib/pipeline/analyzeJob';
-import { regenerateResume, tailorResume } from '@/lib/pipeline/tailorResume';
-import { scoreMatch } from '@/lib/pipeline/scoreMatch';
-import { atsScore } from '@/lib/pipeline/atsScore';
-import { latexToPlainText } from '@/lib/latexText';
-import type { JobProfile, MatchScore, TailorResult } from '@/lib/pipeline/types';
+import { hashText } from '@/core/hash';
+import { computePageBudget } from '@/core/pipeline/pageBudget';
+import { getDensityModel, recordObservation } from '@/lib/pipeline/densityStore';
+import { analyzeJob } from '@/core/pipeline/analyzeJob';
+import { regenerateResume, tailorResume } from '@/core/pipeline/tailorResume';
+import { scoreMatch } from '@/core/pipeline/scoreMatch';
+import { atsScore } from '@/core/pipeline/atsScore';
+import { latexToPlainText } from '@/core/latexText';
+import type { JobProfile, MatchScore, TailorResult } from '@/core/pipeline/types';
 import { sendToTab, type OverleafDoc, type OverleafTabInfo } from '@/lib/messages';
 import type { WizardState } from '@/lib/state';
 

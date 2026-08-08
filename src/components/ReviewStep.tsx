@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ErrorCode, type AppError } from '@/lib/errors';
+import { ErrorCode, type AppError } from '@/core/errors';
 import { sendMessage } from '@/lib/messages';
 import type { WizardState } from '@/lib/state';
-import { projectedPages, type PageBudget } from '@/lib/pipeline/pageBudget';
+import { projectedPages, type PageBudget } from '@/core/pipeline/pageBudget';
 import { DiffView } from './DiffView';
 import { MatchScoreCard } from './MatchScoreCard';
 import { AtsScoreCard } from './AtsScoreCard';

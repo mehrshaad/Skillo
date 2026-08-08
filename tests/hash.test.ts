@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hashText } from '@/lib/hash';
+import { hashText } from '@/core/hash';
 
 describe('hashText', () => {
   it('is stable for identical input', () => {

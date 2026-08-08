@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { ErrorCode } from '@/lib/errors';
+import { ErrorCode } from '@/core/errors';
 import { createClaudeCodeProvider, getBridgeStatus } from '@/lib/providers/claudeCode';
 
 type Listener = (msg: unknown) => void;

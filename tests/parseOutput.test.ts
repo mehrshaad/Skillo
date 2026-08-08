@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ErrorCode } from '@/lib/errors';
+import { ErrorCode } from '@/core/errors';
 import {
   extractJsonObject,
   parseTailorOutput,
   toJobProfile,
-} from '@/lib/pipeline/parseOutput';
-import { analyzeJob } from '@/lib/pipeline/analyzeJob';
-import type { JobPosting } from '@/lib/jobIntake/types';
-import type { LLMProvider } from '@/lib/providers/types';
+} from '@/core/pipeline/parseOutput';
+import { analyzeJob } from '@/core/pipeline/analyzeJob';
+import type { JobPosting } from '@/core/jobIntake/types';
+import type { LLMProvider } from '@/core/providers/types';
 
 describe('extractJsonObject', () => {
   it('parses a bare object', () => {

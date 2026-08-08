@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { JobPosting } from '@/lib/jobIntake/types';
-import type { TailorResult } from '@/lib/pipeline/types';
+import type { JobPosting } from '@/core/jobIntake/types';
+import type { TailorResult } from '@/core/pipeline/types';
 import type { ResumeSource, WizardState, WizardStep } from '@/lib/state';
 import { footerAction, isReachable } from '@/lib/wizardNav';
 

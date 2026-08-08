@@ -8,7 +8,7 @@ import {
   replaceSectionBody,
   retitleSection,
   sectionBody,
-} from '@/lib/latexSections';
+} from '@/core/latexSections';
 
 const fixture = (name: string) =>
   readFileSync(resolve(__dirname, 'fixtures/latex', name), 'utf8');

@@ -1,10 +1,10 @@
 import { browser } from 'wxt/browser';
-import { ErrorCode, appError } from '@/lib/errors';
+import { ErrorCode, appError } from '@/core/errors';
 import { sendToTab } from '@/lib/messages';
 import { MIN_USABLE_DESCRIPTION } from './domExtract';
 import { parseHtmlOffscreen } from './offscreenParse';
-import { guestApiUrlFor, jobUrlFor, parseLinkedInJobUrl } from './url';
-import type { JobPosting, JobSource, ParsedJob } from './types';
+import { guestApiUrlFor, jobUrlFor, parseLinkedInJobUrl } from '@/core/jobIntake/url';
+import type { JobPosting, JobSource, ParsedJob } from '@/core/jobIntake/types';
 
 const TAB_LOAD_TIMEOUT_MS = 20_000;
 const HYDRATION_ATTEMPTS = 5;

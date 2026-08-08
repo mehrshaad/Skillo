@@ -1,4 +1,4 @@
-import { ErrorCode, appError } from '@/lib/errors';
+import { ErrorCode, appError } from '@/core/errors';
 
 const RETRY_DELAYS_MS = [2_000, 8_000];
 

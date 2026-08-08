@@ -1,4 +1,4 @@
-import { ErrorCode, appError } from '@/lib/errors';
+import { ErrorCode, appError } from '@/core/errors';
 import { providerFetch } from './http';
 import type { CompletionRequest, CompletionResponse, LLMProvider, ModelInfo } from './types';
 

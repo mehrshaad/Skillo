@@ -1,4 +1,4 @@
-import { ErrorCode, appError } from './errors';
+import { ErrorCode, appError } from '@/core/errors';
 import { fail, sendMessage, type Result } from './messages';
 import type { WizardState } from './state';
 

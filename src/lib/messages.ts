@@ -1,9 +1,9 @@
 import { browser } from 'wxt/browser';
-import type { AppError } from './errors';
-import { ErrorCode, appError } from './errors';
-import type { JobPosting, ParsedJob } from './jobIntake/types';
+import type { AppError } from '@/core/errors';
+import { ErrorCode, appError } from '@/core/errors';
+import type { JobPosting, ParsedJob } from '@/core/jobIntake/types';
 import type { WizardState } from './state';
-import type { ModelInfo, ProviderId } from './providers/types';
+import type { ModelInfo, ProviderId } from '@/core/providers/types';
 import type { BridgeStatus } from './providers/claudeCode';
 import { injectScriptsFor } from './tabScripts';
 

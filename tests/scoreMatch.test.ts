@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ErrorCode } from '@/lib/errors';
-import { scoreMatch } from '@/lib/pipeline/scoreMatch';
-import type { JobProfile } from '@/lib/pipeline/types';
-import type { LLMProvider } from '@/lib/providers/types';
+import { ErrorCode } from '@/core/errors';
+import { scoreMatch } from '@/core/pipeline/scoreMatch';
+import type { JobProfile } from '@/core/pipeline/types';
+import type { LLMProvider } from '@/core/providers/types';
 
 const profile: JobProfile = {
   title: 'Backend Engineer',

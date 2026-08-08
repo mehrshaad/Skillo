@@ -1,4 +1,4 @@
-import { parseBullets } from '@/lib/changeSummary';
+import { parseBullets } from '@/core/changeSummary';
 import { useUiPref } from './useUiPref';
 import { Collapsible } from './ui';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { validateLatex } from '@/lib/pipeline/validateLatex';
-import { findIncludedFiles, looksLikeLatex } from '@/lib/resumeInput';
+import { validateLatex } from '@/core/pipeline/validateLatex';
+import { findIncludedFiles, looksLikeLatex } from '@/core/resumeInput';
 
 const VALID = `\\documentclass{article}
 \\usepackage{geometry}

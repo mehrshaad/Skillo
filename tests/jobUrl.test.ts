@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseLinkedInJobUrl } from '@/lib/jobIntake/url';
+import { parseLinkedInJobUrl } from '@/core/jobIntake/url';
 
 describe('parseLinkedInJobUrl', () => {
   it('reads a bare /jobs/view/ id', () => {

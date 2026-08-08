@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { ErrorCode, type AppError } from '@/lib/errors';
-import type { ParsedJob } from '@/lib/jobIntake/types';
+import { ErrorCode, type AppError } from '@/core/errors';
+import type { ParsedJob } from '@/core/jobIntake/types';
 
 const parseHtmlOffscreen = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/jobIntake/offscreenParse', () => ({ parseHtmlOffscreen }));

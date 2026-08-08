@@ -1,6 +1,12 @@
 export const PROVIDER_IDS = ['openrouter', 'openai', 'anthropic', 'claude-code'] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
+/** What a keyed provider needs to run. Stored per provider so switching keeps both. */
+export interface ProviderConfig {
+  apiKey: string;
+  model: string;
+}
+
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;

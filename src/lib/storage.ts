@@ -1,14 +1,11 @@
 import { browser } from 'wxt/browser';
-import type { ProviderId } from './providers/types';
-import type { JobPosting } from './jobIntake/types';
-import type { JobProfile, MatchScore } from './pipeline/types';
-import type { AtsResult } from './pipeline/atsScore';
+import type { ProviderConfig, ProviderId } from '@/core/providers/types';
+import type { JobPosting } from '@/core/jobIntake/types';
+import type { JobProfile, MatchScore } from '@/core/pipeline/types';
+import type { AtsResult } from '@/core/pipeline/atsScore';
 import type { FitLevel, PageLimit } from './state';
 
-export interface ProviderConfig {
-  apiKey: string;
-  model: string;
-}
+export type { ProviderConfig };
 
 /** Last-used generation controls, so the next run starts where the user left off. */
 export interface GenerationDefaults {

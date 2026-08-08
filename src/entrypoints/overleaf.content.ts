@@ -1,5 +1,5 @@
 import { browser } from 'wxt/browser';
-import { ErrorCode, appError, toAppError } from '@/lib/errors';
+import { ErrorCode, appError, toAppError } from '@/core/errors';
 import { fail, ok, type OverleafDoc } from '@/lib/messages';
 import {
   OVERLEAF_ORIGIN,

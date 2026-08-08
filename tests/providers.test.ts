@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ErrorCode } from '@/lib/errors';
-import { createAnthropicProvider } from '@/lib/providers/anthropic';
-import { createOpenAICompatibleProvider } from '@/lib/providers/openaiCompatible';
+import { ErrorCode } from '@/core/errors';
+import { createAnthropicProvider } from '@/core/providers/anthropic';
+import { createOpenAICompatibleProvider } from '@/core/providers/openaiCompatible';
 
 const jsonResponse = (body: unknown, status = 200) =>
   ({

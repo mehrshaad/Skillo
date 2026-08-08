@@ -1,7 +1,7 @@
 import { browser } from 'wxt/browser';
-import { toAppError } from '@/lib/errors';
+import { toAppError } from '@/core/errors';
 import { fail, ok } from '@/lib/messages';
-import { parseJobDocument } from '@/lib/jobIntake/parseJobHtml';
+import { parseJobDocument } from '@/core/jobIntake/parseJobHtml';
 
 /**
  * MV3 service workers have no DOMParser, so HTML fetched in the background is

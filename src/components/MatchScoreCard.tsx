@@ -1,5 +1,5 @@
-import type { MatchScore } from '@/lib/pipeline/types';
-import { bandTextClass, scoreBand } from '@/lib/scoreBand';
+import type { MatchScore } from '@/core/pipeline/types';
+import { bandTextClass, scoreBand } from '@/core/scoreBand';
 import { useUiPref } from './useUiPref';
 import { Collapsible, Eyebrow } from './ui';
 

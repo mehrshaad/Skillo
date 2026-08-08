@@ -1,4 +1,4 @@
-import { bodyChars } from '@/lib/latexText';
+import { bodyChars } from '@/core/latexText';
 import type { DensityModel } from './density';
 
 /**
@@ -57,7 +57,7 @@ export interface PageBudget {
   measured: boolean;
 }
 
-export { bodyChars, documentBody } from '@/lib/latexText';
+export { bodyChars, documentBody } from '@/core/latexText';
 
 export function computePageBudget(
   pageLimit: number,

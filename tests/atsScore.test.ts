@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { atsScore, collectTerms, termMatcher } from '@/lib/pipeline/atsScore';
-import { latexToPlainText, stripLatexComments } from '@/lib/latexText';
-import type { JobProfile } from '@/lib/pipeline/types';
+import { atsScore, collectTerms, termMatcher } from '@/core/pipeline/atsScore';
+import { latexToPlainText, stripLatexComments } from '@/core/latexText';
+import type { JobProfile } from '@/core/pipeline/types';
 
 const profile = (over: Partial<JobProfile> = {}): JobProfile => ({
   title: 'Backend Engineer',

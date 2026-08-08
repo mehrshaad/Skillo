@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { ErrorCode, appError } from '@/lib/errors';
+import { ErrorCode, appError } from '@/core/errors';
 import { fail, ok, sendToTab } from '@/lib/messages';
 
 /**

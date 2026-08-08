@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
-import { ErrorCode, appError, type AppError, type ErrorCode as Code } from '@/lib/errors';
-import type { ChatMessage, CompletionRequest, CompletionResponse, LLMProvider } from './types';
+import { ErrorCode, appError, type AppError, type ErrorCode as Code } from '@/core/errors';
+import type { ChatMessage, CompletionRequest, CompletionResponse, LLMProvider } from '@/core/providers/types';
 
 const HOST_NAME = 'com.skillo.bridge';
 const CALL_TIMEOUT_MS = 200_000;

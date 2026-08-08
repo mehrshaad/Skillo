@@ -1,5 +1,5 @@
-import { ErrorCode, appError, toAppError } from '@/lib/errors';
-import type { ChatMessage, LLMProvider } from '@/lib/providers/types';
+import { ErrorCode, appError, toAppError } from '@/core/errors';
+import type { ChatMessage, LLMProvider } from '@/core/providers/types';
 import { parseTailorOutput } from './parseOutput';
 import type { PageBudget } from './pageBudget';
 import {

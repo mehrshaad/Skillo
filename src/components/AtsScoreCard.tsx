@@ -1,5 +1,5 @@
-import type { AtsResult } from '@/lib/pipeline/atsScore';
-import { bandTextClass, scoreBand } from '@/lib/scoreBand';
+import type { AtsResult } from '@/core/pipeline/atsScore';
+import { bandTextClass, scoreBand } from '@/core/scoreBand';
 import { useUiPref } from './useUiPref';
 import { Collapsible, Eyebrow } from './ui';
 

@@ -11,7 +11,7 @@ import { History } from '@/components/History';
 import { Button, ErrorNote, Spinner, SwapText } from '@/components/ui';
 import { applyRevision } from '@/lib/applyRevision';
 import { STEPS, footerAction, isReachable, type FooterAction } from '@/lib/wizardNav';
-import type { AppError } from '@/lib/errors';
+import type { AppError } from '@/core/errors';
 
 /** Generating is still "continue" from the user's side: same button, same word. */
 const FOOTER_LABEL: Record<FooterAction, string> = {
