@@ -101,6 +101,14 @@ the resolved Node path baked in and points the host manifest at that.
 - Injectable script paths must match the generated `.wxt/types/paths.d.ts` union, and
   `runtime.getURL` needs a literal path — a template string widens to `string` and fails to
   typecheck.
+- **MV3 injects declarative content scripts at navigation time only.** A tab already open
+  when the extension is installed, updated, reloaded or re-enabled has no content script in
+  it, and `tabs.sendMessage` rejects with `Could not establish connection. Receiving end
+  does not exist.` This is not an error state to report — `sendToTab` matches that wording,
+  injects via `scripting.executeScript`, and retries once. It caused the reported bug where
+  "Use current tab" failed on a LinkedIn tab that predated the extension.
+- When injecting the Overleaf pair, the **MAIN-world script goes first**: the ISOLATED
+  bridge posts to it, so its listener should exist before anything can call.
 - `wxt build --mode store` writes to `.output/chrome-mv3-store/`, not the default directory.
   Reading the default one after a store build shows the *dev* manifest.
 - Tailwind v4's Preflight dropped `cursor: pointer` on buttons. One global rule restores it.

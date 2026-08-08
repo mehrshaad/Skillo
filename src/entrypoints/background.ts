@@ -105,13 +105,11 @@ const handlers: HandlerMap = {
   },
 
   'overleaf/write': async (msg) => {
-    const write = { type: 'overleaf/csWrite' as const, content: msg.content, expectedCurrentHash: msg.expectedCurrentHash };
-
-    let res = await sendToTab(msg.tabId, write);
-    if (!res.ok && res.error.code === ErrorCode.INTERNAL) {
-      // Probably no content script in that tab yet rather than a real failure.
-      if (await injectOverleafScripts(msg.tabId)) res = await sendToTab(msg.tabId, write);
-    }
+    const res = await sendToTab(msg.tabId, {
+      type: 'overleaf/csWrite',
+      content: msg.content,
+      expectedCurrentHash: msg.expectedCurrentHash,
+    });
     if (!res.ok) throw res.error;
 
     const state = await getState();
@@ -214,36 +212,11 @@ async function acceptJob(job: JobPosting): Promise<JobPosting> {
   return job;
 }
 
-/**
- * Content scripts are declared for Overleaf, but a tab opened before the
- * extension was installed or reloaded has none. Inject on demand rather than
- * making the user reload.
- */
-async function injectOverleafScripts(tabId: number): Promise<boolean> {
-  try {
-    await browser.scripting.executeScript({
-      target: { tabId },
-      files: ['/content-scripts/overleaf-main.js'],
-      world: 'MAIN',
-    });
-    await browser.scripting.executeScript({
-      target: { tabId },
-      files: ['/content-scripts/overleaf.js'],
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function readOverleafDoc(tabId: number): Promise<OverleafDoc> {
-  const first = await sendToTab(tabId, { type: 'overleaf/csRead' });
-  if (first.ok) return first.data;
-  if (!(await injectOverleafScripts(tabId))) throw first.error;
-
-  const second = await sendToTab(tabId, { type: 'overleaf/csRead' });
-  if (!second.ok) throw second.error;
-  return second.data;
+  // sendToTab injects the content scripts itself when the tab has none.
+  const res = await sendToTab(tabId, { type: 'overleaf/csRead' });
+  if (!res.ok) throw res.error;
+  return res.data;
 }
 
 /**
