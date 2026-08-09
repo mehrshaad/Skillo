@@ -69,6 +69,20 @@ and arrive free: every document read gives one, every post-apply page check give
 Before anything is learned, the fallback is **3600 characters per page**, measured from a
 real two-page article-class resume (7288 body characters over 2 pages).
 
+### Recompiling and the PDF (verified live, 2026-08-01)
+
+- The Recompile button is `.compile-button-group button.compile-button`. It has **no** id and no
+  `data-testid`; `.btn-recompile`, `#recompile` and `[data-testid="recompile-button"]` all match
+  nothing, so none of the obvious guesses would have worked.
+- It carries **`data-ol-loading`**, which goes `false → true → false` across a compile, and is
+  `disabled` while busy. That is the signal to wait on — no fixed sleep needed. Observed
+  transitions on a one-page document: true at ~250 ms, false again by ~500 ms.
+- A plain `.click()` from the ISOLATED content script triggers a real compile; React picks it up.
+- The compiled PDF is reachable as an `<a download>` with `aria-label="Download PDF"`, pointing at
+  `/download/project/{id}/build/{buildId}/output/output.pdf`. **Click that anchor rather than
+  fetching the URL** — it is signed, and only the page's session can use it.
+- The page-count selectors above still match on the same build.
+
 ## Model providers
 
 **Never send `temperature`.** Current Anthropic models reject `temperature`, `top_p` and

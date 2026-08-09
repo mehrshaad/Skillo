@@ -185,6 +185,27 @@ const handlers: HandlerMap = {
     return { applied: true } as const;
   },
 
+  'overleaf/compile': async (msg) => {
+    const res = await sendToTab(msg.tabId, { type: 'overleaf/csCompile' });
+    if (!res.ok) throw res.error;
+
+    // A fresh compile is the most informative density observation there is,
+    // because it is the text Skillo just wrote.
+    if (res.data.outcome === 'compiled') {
+      const { pages } = await readOverleafPageCount(msg.tabId);
+      const state = await getState();
+      const latex = state.generation.result?.latex ?? state.resume?.latex;
+      if (pages !== null && latex) await recordObservation(latex, pages);
+    }
+    return res.data;
+  },
+
+  'overleaf/downloadPdf': async (msg) => {
+    const res = await sendToTab(msg.tabId, { type: 'overleaf/csDownloadPdf' });
+    if (!res.ok) throw res.error;
+    return res.data;
+  },
+
   'overleaf/pageCount': async (msg) => {
     const result = await readOverleafPageCount(msg.tabId);
 
@@ -346,6 +367,53 @@ async function readOverleafPageCount(tabId: number): Promise<{ pages: number | n
   return res.ok ? res.data : { pages: null };
 }
 
+/**
+ * Writes the revision straight into Overleaf when the user has asked for that,
+ * and recompiles it.
+ *
+ * Deliberately timid, because this is the one destructive thing Skillo does:
+ * off unless switched on, never on a revision that failed validation, never on
+ * a resume that did not come from an Overleaf tab, and it reuses the existing
+ * stale-document guard rather than a looser one of its own. Any refusal is
+ * silent — the review screen is right there with a working Apply button.
+ */
+async function autoApply(state: WizardState, historyId: string): Promise<WizardState> {
+  const { autoApply: enabled, autoCompile } = await getSettings();
+  const result = state.generation.result;
+  const resume = state.resume;
+
+  if (!enabled || !result || result.validationErrors?.length) return state;
+  if (resume?.kind !== 'overleaf' || resume.tabId === undefined) return state;
+
+  const written = await sendToTab(resume.tabId, {
+    type: 'overleaf/csWrite',
+    content: result.latex,
+    expectedCurrentHash: resume.overleafDocHash ?? '',
+  });
+  if (!written.ok) return state;
+
+  const applied = await patchState({
+    appliedAt: new Date().toISOString(),
+    resume: {
+      ...resume,
+      latex: result.latex,
+      overleafDocHash: hashText(result.latex),
+      locallyEdited: false,
+    },
+  });
+  await updateHistoryEntry(historyId, { applied: true });
+
+  if (autoCompile !== false) {
+    const compiled = await sendToTab(resume.tabId, { type: 'overleaf/csCompile' });
+    if (compiled.ok && compiled.data.outcome === 'compiled') {
+      const { pages } = await readOverleafPageCount(resume.tabId);
+      if (pages !== null) await recordObservation(result.latex, pages);
+    }
+  }
+
+  return applied;
+}
+
 interface RegenerationContext {
   previous: TailorResult;
   feedback: string;
@@ -472,12 +540,14 @@ async function runGeneration(
       ats,
     });
 
-    return patchState({
+    const next = await patchState({
       step: 'review',
       historyId,
       appliedAt: undefined,
       generation: { status: 'done', runId, startedAt, result, match, ats, budget },
     });
+
+    return autoApply(next, historyId);
   } catch (e) {
     const error = toAppError(e);
     await patchState({ generation: { status: 'error', runId, startedAt, error } });

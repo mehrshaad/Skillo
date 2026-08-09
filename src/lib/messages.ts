@@ -6,6 +6,7 @@ import type { WizardState } from './state';
 import type { ModelInfo, ProviderId } from '@/core/providers/types';
 import type { BridgeStatus } from './providers/claudeCode';
 import type { ChatTurn } from '@/core/pipeline/chat';
+import type { CompileOutcome } from './overleaf/compile';
 import { injectScriptsFor } from './tabScripts';
 
 export interface OverleafTabInfo {
@@ -37,6 +38,10 @@ export interface MessageMap {
   };
   /** null when the project has not been compiled or the PDF pane is closed. */
   'overleaf/pageCount': { req: { tabId: number }; res: { pages: number | null } };
+  /** Presses Overleaf's own Recompile and waits for it to finish. */
+  'overleaf/compile': { req: { tabId: number }; res: { outcome: CompileOutcome } };
+  /** Clicks Overleaf's download link, so the browser carries the signed session. */
+  'overleaf/downloadPdf': { req: { tabId: number }; res: { started: boolean } };
   /**
    * The user read the real fill off the compiled page. Worth more than a page
    * count, because a fraction pins the capacity instead of bounding it.
@@ -69,6 +74,8 @@ export interface MessageMap {
     res: { applied: true };
   };
   'overleaf/csPageCount': { req: {}; res: { pages: number | null } };
+  'overleaf/csCompile': { req: {}; res: { outcome: CompileOutcome } };
+  'overleaf/csDownloadPdf': { req: {}; res: { started: boolean } };
 }
 
 export type MessageType = keyof MessageMap;

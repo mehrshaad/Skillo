@@ -25,6 +25,10 @@ export interface UiPrefs {
 
 export interface Settings {
   activeProviderId: ProviderId | null;
+  /** Write a finished revision into Overleaf without waiting to be asked. Off by default. */
+  autoApply?: boolean;
+  /** Press Recompile after applying. Harmless, so it defaults on once autoApply is. */
+  autoCompile?: boolean;
   defaults?: GenerationDefaults;
   ui?: UiPrefs;
   providers: {
@@ -93,6 +97,8 @@ const HISTORY_LIMIT = 100;
 
 interface SyncedSettings {
   activeProviderId: ProviderId | null;
+  autoApply?: boolean;
+  autoCompile?: boolean;
   models: Partial<Record<ProviderId, string>>;
   claudeCodeEnabled?: boolean;
   defaults?: GenerationDefaults;
@@ -178,6 +184,8 @@ function splitSettings(settings: Settings): { synced: SyncedSettings; secrets: S
   return {
     synced: {
       activeProviderId: settings.activeProviderId,
+      autoApply: settings.autoApply,
+      autoCompile: settings.autoCompile,
       models,
       claudeCodeEnabled: settings.providers.claudeCode?.enabled,
       defaults: settings.defaults,
@@ -203,6 +211,8 @@ function composeSettings(
 
   return {
     activeProviderId: synced?.activeProviderId ?? null,
+    autoApply: synced?.autoApply,
+    autoCompile: synced?.autoCompile,
     defaults: synced?.defaults,
     ui: synced?.ui,
     providers,

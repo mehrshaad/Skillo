@@ -6,7 +6,17 @@ import type { BridgeStatus } from '@/lib/providers/claudeCode';
 import { PROVIDER_META } from '@/core/providers/registry';
 import { PROVIDER_IDS, type ModelInfo, type ProviderId } from '@/core/providers/types';
 import { getSettings, saveSettings, type Settings as SettingsData } from '@/lib/storage';
-import { Button, Chip, ErrorNote, Note, SectionHeader, Spinner, SwapText, TextInput } from './ui';
+import {
+  Button,
+  Chip,
+  ErrorNote,
+  Note,
+  SectionHeader,
+  Spinner,
+  SwapText,
+  TextInput,
+  Toggle,
+} from './ui';
 
 interface Installer {
   /** Literal path so WXT's typed getURL accepts it. */
@@ -45,6 +55,24 @@ export function Settings({ onClose }: { onClose: () => void }) {
           done
         </Button>
       </div>
+
+      <section className="space-y-2">
+        <SectionHeader>Overleaf</SectionHeader>
+        <Toggle
+          checked={settings.autoApply ?? false}
+          onChange={(v) => void update({ autoApply: v })}
+          label="Apply without asking"
+          description="Writes a finished revision straight into your project. It refuses if the revision failed Skillo's checks, or if the document changed since it was read — the same guard the Apply button uses. Ctrl+Z in Overleaf still undoes it in one step."
+        />
+        {settings.autoApply && (
+          <Toggle
+            checked={settings.autoCompile !== false}
+            onChange={(v) => void update({ autoCompile: v })}
+            label="Recompile after applying"
+            description="Presses Overleaf's own Recompile and waits for it to finish, so the PDF you look at is the new one."
+          />
+        )}
+      </section>
 
       <section className="space-y-2">
         <SectionHeader>Model provider</SectionHeader>

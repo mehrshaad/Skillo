@@ -140,6 +140,8 @@ export function ReviewStep({ state }: { state: WizardState }) {
   const [error, setError] = useState<AppError | null>(null);
   const [copied, setCopied] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [compiling, setCompiling] = useState(false);
+  const [pdfNote, setPdfNote] = useState<string | null>(null);
 
   const result = state.generation.result;
   const resume = state.resume;
@@ -165,6 +167,31 @@ export function ReviewStep({ state }: { state: WizardState }) {
     const res = await sendMessage({ type: 'overleaf/read', tabId: overleafTabId });
     setError(res.ok ? null : res.error);
     setApplying(false);
+  };
+
+  const compile = async () => {
+    if (overleafTabId === undefined) return;
+    setCompiling(true);
+    setError(null);
+    const res = await sendMessage({ type: 'overleaf/compile', tabId: overleafTabId });
+    if (!res.ok) setError(res.error);
+    setCompiling(false);
+  };
+
+  /**
+   * Overleaf's own download link is clicked in the page, so the browser carries
+   * the session that signs the URL. There is no link until it has compiled.
+   */
+  const savePdf = async () => {
+    if (overleafTabId === undefined) return;
+    setError(null);
+    const res = await sendMessage({ type: 'overleaf/downloadPdf', tabId: overleafTabId });
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    setPdfNote(res.data.started ? 'Saved' : 'Compile it first');
+    setTimeout(() => setPdfNote(null), 2500);
   };
 
   const download = () => {
@@ -270,6 +297,17 @@ export function ReviewStep({ state }: { state: WizardState }) {
         <Button variant="secondary" onClick={download}>
           Download .tex
         </Button>
+        {overleafTabId !== undefined && state.appliedAt && (
+          <>
+            <Button variant="secondary" disabled={compiling} onClick={() => void compile()}>
+              {compiling ? <Spinner /> : null}
+              <SwapText>{compiling ? 'Compiling…' : 'Recompile'}</SwapText>
+            </Button>
+            <Button variant="secondary" onClick={() => void savePdf()}>
+              <SwapText>{pdfNote ?? 'Download PDF'}</SwapText>
+            </Button>
+          </>
+        )}
         <Button variant="ghost" onClick={() => setShowFeedback((v) => !v)}>
           Regenerate with feedback
         </Button>

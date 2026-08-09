@@ -44,6 +44,8 @@ const SCRIPTS_FOR: Partial<Record<MessageType, ScriptSpec[]>> = {
   'overleaf/csRead': OVERLEAF_SCRIPTS,
   'overleaf/csWrite': OVERLEAF_SCRIPTS,
   'overleaf/csPageCount': OVERLEAF_SCRIPTS,
+  'overleaf/csCompile': OVERLEAF_SCRIPTS,
+  'overleaf/csDownloadPdf': OVERLEAF_SCRIPTS,
 };
 
 /**

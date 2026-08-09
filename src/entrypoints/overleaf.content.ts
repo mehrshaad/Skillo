@@ -8,6 +8,7 @@ import {
   type OverleafOp,
 } from '@/lib/overleaf/protocol';
 import { readPageCount } from '@/lib/overleaf/pageCount';
+import { downloadPdf, recompile } from '@/lib/overleaf/compile';
 
 const RPC_TIMEOUT_MS = 5_000;
 let nextId = 0;
@@ -71,6 +72,18 @@ export default defineContentScript({
       // The PDF preview is ordinary DOM, so this needs no page JavaScript.
       if (message?.type === 'overleaf/csPageCount') {
         sendResponse(ok({ pages: readPageCount(document) }));
+        return true;
+      }
+
+      if (message?.type === 'overleaf/csCompile') {
+        recompile(document)
+          .then((outcome) => sendResponse(ok({ outcome })))
+          .catch((e: unknown) => sendResponse(fail(toAppError(e))));
+        return true;
+      }
+
+      if (message?.type === 'overleaf/csDownloadPdf') {
+        sendResponse(ok({ started: downloadPdf(document) }));
         return true;
       }
 
