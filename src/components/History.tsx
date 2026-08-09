@@ -97,6 +97,30 @@ function Detail({
         </div>
       </section>
 
+      {entry.chat && entry.chat.length > 0 && (
+        <section className="space-y-1.5">
+          <SectionHeader meta={`${entry.chat.length} messages`}>What you asked</SectionHeader>
+          <ul className="space-y-1.5">
+            {entry.chat.map((turn, i) => (
+              <li
+                key={`${i}-${turn.at}`}
+                className={
+                  turn.role === 'user'
+                    ? 'ml-6 rounded border border-proof/40 bg-proof-wash px-2.5 py-1.5 text-xs'
+                    : 'whitespace-pre-wrap rounded border border-rule bg-paper-sunk px-2.5 py-2 text-xs leading-relaxed'
+                }
+              >
+                {turn.content}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted">
+            Read-only here, so a question cannot land on whichever run happens to be open. Reopen
+            this one to carry on.
+          </p>
+        </section>
+      )}
+
       <DiffView oldText={entry.originalLatex} newText={entry.revisedLatex} />
 
       <Button

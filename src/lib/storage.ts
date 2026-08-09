@@ -3,6 +3,7 @@ import type { ProviderConfig, ProviderId } from '@/core/providers/types';
 import type { JobPosting } from '@/core/jobIntake/types';
 import type { JobProfile, MatchScore } from '@/core/pipeline/types';
 import type { AtsResult } from '@/core/pipeline/atsScore';
+import type { ChatTurn } from '@/core/pipeline/chat';
 import type { FitLevel, PageLimit } from './state';
 
 export type { ProviderConfig };
@@ -56,6 +57,8 @@ export interface HistoryEntry {
   label?: string;
   /** Anything worth remembering about it: who referred you, what you said. */
   note?: string;
+  /** The coaching conversation about this run, so it survives closing the panel. */
+  chat?: ChatTurn[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {

@@ -29,6 +29,7 @@ import {
   reviseFromCritique,
   tailorResume,
 } from '@/core/pipeline/tailorResume';
+import { chatAboutResume, type ChatTurn } from '@/core/pipeline/chat';
 import { writeCoverLetter } from '@/core/pipeline/coverLetter';
 import { scoreMatch } from '@/core/pipeline/scoreMatch';
 import { atsScore } from '@/core/pipeline/atsScore';
@@ -224,6 +225,56 @@ const handlers: HandlerMap = {
       candidate: await getProfile(),
     });
     return { letter };
+  },
+
+  /**
+   * The conversation lives on the history entry rather than in wizard state, so
+   * it is still there when the run is reopened weeks later.
+   */
+  'chat/send': async (msg) => {
+    const state = await getState();
+    const result = state.generation.result;
+    if (!state.jobProfile || !result || !state.resume) {
+      throw appError(ErrorCode.INTERNAL, 'There is no revision to talk about yet.');
+    }
+
+    const entry = state.historyId
+      ? (await getHistory()).find((e) => e.id === state.historyId)
+      : undefined;
+    const turns = entry?.chat ?? [];
+
+    const { provider, model } = await getActiveProvider();
+    const densityModel = await getDensityModel(state.resume.latex);
+
+    const reply = await chatAboutResume({
+      provider,
+      model,
+      job: state.jobProfile,
+      latex: result.latex,
+      originalLatex: state.resume.latex,
+      budget: computePageBudget(state.pageLimit, state.fillLastPage, densityModel),
+      match: state.generation.match,
+      ats: state.generation.ats,
+      candidate: await getProfile(),
+      turns,
+      message: msg.message,
+    });
+
+    const now = new Date().toISOString();
+    const next: ChatTurn[] = [
+      ...turns,
+      { role: 'user', content: msg.message, at: now },
+      {
+        role: 'assistant',
+        content: reply.text,
+        ...(reply.latex ? { latex: reply.latex } : {}),
+        ...(reply.validationErrors ? { validationErrors: reply.validationErrors } : {}),
+        at: now,
+      },
+    ];
+
+    if (state.historyId) await updateHistoryEntry(state.historyId, { chat: next });
+    return { turns: next };
   },
 
   'pipeline/tailor': async (msg) => runGeneration(msg.notes, null),

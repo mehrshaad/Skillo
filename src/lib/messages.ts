@@ -5,6 +5,7 @@ import type { JobPosting, ParsedJob } from '@/core/jobIntake/types';
 import type { WizardState } from './state';
 import type { ModelInfo, ProviderId } from '@/core/providers/types';
 import type { BridgeStatus } from './providers/claudeCode';
+import type { ChatTurn } from '@/core/pipeline/chat';
 import { injectScriptsFor } from './tabScripts';
 
 export interface OverleafTabInfo {
@@ -46,6 +47,8 @@ export interface MessageMap {
   'pipeline/regenerate': { req: { feedback: string }; res: WizardState };
   /** On demand, so it costs nothing on runs that do not want one. */
   'pipeline/coverLetter': { req: {}; res: { letter: string } };
+  /** Coaching and edits about the current run. Returns the whole conversation. */
+  'chat/send': { req: { message: string }; res: { turns: ChatTurn[] } };
   'provider/test': { req: { providerId: ProviderId }; res: { ok: true } };
   'bridge/status': { req: {}; res: BridgeStatus };
   'provider/listModels': { req: { providerId: ProviderId }; res: ModelInfo[] };

@@ -9,6 +9,7 @@ import { AtsScoreCard } from './AtsScoreCard';
 import { PageFillReport } from './PageFillReport';
 import { ChangeSummary } from './ChangeSummary';
 import { CoverLetter } from './CoverLetter';
+import { ResumeChat } from './ResumeChat';
 import { Button, Chip, ErrorNote, Note, SectionHeader, Spinner, SwapText, TextArea } from './ui';
 import { applyRevision } from '@/lib/applyRevision';
 
@@ -244,6 +245,8 @@ export function ReviewStep({ state }: { state: WizardState }) {
       />
 
       <DiffView oldText={resume.latex} newText={result.latex} />
+
+      <ResumeChat historyId={state.historyId} currentLatex={result.latex} />
 
       <CoverLetter company={state.job?.company ?? ''} />
 
