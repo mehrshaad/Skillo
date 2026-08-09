@@ -96,6 +96,22 @@ const handlers: HandlerMap = {
     });
   },
 
+  /**
+   * The in-page button. The panel is opened first and synchronously — Chrome
+   * only allows `sidePanel.open` while the user gesture that triggered this
+   * message is still live, and fetching the posting first would spend it.
+   */
+  'panel/openWithJob': async (msg, sender) => {
+    const windowId = sender.tab?.windowId;
+    if (windowId !== undefined) {
+      await browser.sidePanel.open({ windowId });
+    }
+
+    // Now the slow part, with the panel already up to show progress.
+    await acceptJob(await fetchJobFromUrl(msg.url));
+    return { opened: true } as const;
+  },
+
   'job/fetch': async (msg) => acceptJob(await fetchJobFromUrl(msg.url)),
   'job/useActiveTab': async () => acceptJob(await extractFromActiveTab()),
   'job/manual': async (msg) => acceptJob(buildManualPosting(msg.url, msg.text)),

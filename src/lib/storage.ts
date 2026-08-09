@@ -21,6 +21,8 @@ export interface UiPrefs {
   matchExpanded?: boolean;
   atsExpanded?: boolean;
   changesExpanded?: boolean;
+  /** When the first-run tour was dismissed. Synced, so a second machine skips it. */
+  tourDoneAt?: string;
 }
 
 export interface Settings {

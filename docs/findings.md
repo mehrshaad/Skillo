@@ -90,6 +90,27 @@ real two-page article-class resume (7288 body characters over 2 pages).
 per-provider conditional is safe. It is absent from the request type entirely, with a test
 asserting it is never sent.
 
+**CORS from a web page differs per provider** (probed 2026-08-01 from
+`https://skillo.ali-dadashzadeh.ir` with a dummy key — CORS is enforced before auth, so a
+readable 401 means the browser allowed the call and `TypeError: Failed to fetch` means it
+did not):
+
+| | GET `/models` | POST completion |
+|---|---|---|
+| OpenRouter | allowed (200) | **allowed** (401) |
+| Hugging Face | allowed (200) | **allowed** (401) |
+| Anthropic | — | **allowed only with** `anthropic-dangerous-direct-browser-access: true`; blocked without it |
+| OpenAI | allowed (401) | **BLOCKED** |
+
+Two traps in that table. Anthropic needs the opt-in header, which the provider already
+sends. And OpenAI **allows `/models` but blocks the actual completion**, so a "test
+connection" built on a model list would report OpenAI as working in a web page and then
+fail on every generation. Any browser-side surface must test with a completion, not a
+model list.
+
+The extension is unaffected — `host_permissions` bypasses CORS entirely — which is why
+routing a web page's calls *through* the extension makes every provider work.
+
 **Model lists are fetched, not hardcoded.** All three providers expose a models endpoint, so
 no model id is baked into the source and nothing goes stale.
 

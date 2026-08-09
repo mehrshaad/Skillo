@@ -57,6 +57,11 @@ export interface MessageMap {
   'provider/test': { req: { providerId: ProviderId }; res: { ok: true } };
   'bridge/status': { req: {}; res: BridgeStatus };
   'provider/listModels': { req: { providerId: ProviderId }; res: ModelInfo[] };
+  /**
+   * From the in-page button. Opens the side panel and loads that job. The panel
+   * must be opened from inside the click handler, so this is sent without await.
+   */
+  'panel/openWithJob': { req: { url: string }; res: { opened: true } };
   /** Loads a past run back into the wizard so it can be read, chatted with or regenerated. */
   'history/reopen': { req: { id: string }; res: WizardState };
   'state/get': { req: {}; res: WizardState };

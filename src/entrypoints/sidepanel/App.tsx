@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { sendMessage } from '@/lib/messages';
 import { onStateChange, type WizardState, type WizardStep } from '@/lib/state';
-import { getSettings, type Settings as SettingsData } from '@/lib/storage';
+import { getSettings, saveSettings, type Settings as SettingsData } from '@/lib/storage';
 import { JobStep } from '@/components/JobStep';
 import { ResumeStep } from '@/components/ResumeStep';
 import { TailorStep } from '@/components/TailorStep';
@@ -9,6 +9,7 @@ import { ReviewStep } from '@/components/ReviewStep';
 import { Settings } from '@/components/Settings';
 import { History } from '@/components/History';
 import { Profile } from '@/components/Profile';
+import { Tour } from '@/components/Tour';
 import { Button, ErrorNote, Spinner, SwapText } from '@/components/ui';
 import { applyRevision } from '@/lib/applyRevision';
 import { isProfileEmpty } from '@/core/profile';
@@ -29,13 +30,19 @@ export default function App() {
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [overlay, setOverlay] = useState<null | 'settings' | 'history' | 'profile'>(null);
   const [profileEmpty, setProfileEmpty] = useState(false);
+  /** Undefined until settings load, so the tour never flashes on a return visit. */
+  const [tourDone, setTourDone] = useState<boolean | undefined>(undefined);
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState<AppError | null>(null);
   /** Null until edited, so the draft falls through to whatever the last run used. */
   const [notesDraft, setNotesDraft] = useState<string | null>(null);
   const [generateError, setGenerateError] = useState<AppError | null>(null);
 
-  const refreshSettings = () => void getSettings().then(setSettings);
+  const refreshSettings = () =>
+    void getSettings().then((s) => {
+      setSettings(s);
+      setTourDone(Boolean(s.ui?.tourDoneAt));
+    });
   const refreshProfile = () => void getProfile().then((p) => setProfileEmpty(isProfileEmpty(p)));
 
   useEffect(() => {
@@ -47,7 +54,24 @@ export default function App() {
     return onStateChange(setState);
   }, []);
 
-  if (!state) return <div className="p-4 text-xs text-muted">Loading…</div>;
+  if (!state || tourDone === undefined) {
+    return <div className="p-4 text-xs text-muted">Loading…</div>;
+  }
+
+  const finishTour = () => {
+    setTourDone(true);
+    void getSettings().then((s) =>
+      saveSettings({ ui: { ...s.ui, tourDoneAt: new Date().toISOString() } }),
+    );
+  };
+
+  if (!tourDone) {
+    return (
+      <Shell>
+        <Tour onDone={finishTour} onOpen={setOverlay} />
+      </Shell>
+    );
+  }
 
   if (overlay === 'settings') {
     return (
@@ -137,6 +161,13 @@ export default function App() {
             className="font-mono text-[10px] text-muted underline hover:text-proof"
           >
             {settings?.activeProviderId ?? 'set up a model'}
+          </button>
+          <button
+            onClick={() => setTourDone(false)}
+            title="Replay the introduction"
+            className="font-mono text-[10px] text-muted underline hover:text-proof"
+          >
+            ?
           </button>
         </div>
       </header>
