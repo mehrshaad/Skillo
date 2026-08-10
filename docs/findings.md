@@ -127,6 +127,30 @@ no-file-access sandbox wanted. The reply text is `result` in the returned JSON, 
 Chrome cannot execute a `.mjs` on Windows, so the installer writes a `.bat` launcher with
 the resolved Node path baked in and points the host manifest at that.
 
+## Codex CLI (partially verified against 0.147.0)
+
+Non-interactive mode is `codex exec`. It differs from the Claude CLI in ways that matter:
+
+- **There is no `--system-prompt`.** The system text has to be folded into the prompt itself.
+- The prompt is read from **stdin** when the argument is `-` (`codex exec -`).
+- `-o, --output-last-message <FILE>` writes just the agent's final message to a file. That is
+  far cleaner than `--json`, which emits JSONL *events* rather than one object.
+- Useful flags for a one-shot text call: `--ephemeral` (no session files), `-s read-only`
+  (Codex is an agent and can otherwise run commands), `--skip-git-repo-check`, `--color never`.
+- There is no equivalent of Claude's `--tools ""`; `-s read-only` is the closest thing.
+- On Windows the binary lives at `%LOCALAPPDATA%\Programs\OpenAI\Codexin\codex`.
+
+**Failure is detectable by exit code.** With a stale token: exit **1**, stdout empty, all
+diagnostics on stderr, and the `-o` file is **never created**. So the bridge should treat
+"non-zero exit or missing output file" as the failure case rather than parsing stderr.
+
+**`codex login status` cannot be used as a readiness check.** It reported
+`Logged in using ChatGPT` while every request failed with
+`refresh token was already used`. Only a real call reveals a dead token.
+
+Still unverified, and must be before the provider ships: the exact content of the `-o` file on
+a **successful** call, whether it carries any preamble, and typical latency.
+
 ## Chrome and WXT
 
 - `browser` comes from `wxt/browser`; there is no `@types/chrome` and the global `chrome`
