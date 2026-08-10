@@ -5,11 +5,16 @@ import type { ChatMessage, CompletionRequest, CompletionResponse, LLMProvider } 
 const HOST_NAME = 'com.skillo.bridge';
 const CALL_TIMEOUT_MS = 200_000;
 
+/** Which local CLI a request is for. The bridge serves both from one host. */
+export type LocalCli = 'claude' | 'codex';
+
 export interface BridgeStatus {
   installed: boolean;
   version?: string;
   claudeFound?: boolean;
   claudePath?: string | null;
+  codexFound?: boolean;
+  codexPath?: string | null;
 }
 
 interface BridgeResponse {
@@ -19,6 +24,8 @@ interface BridgeResponse {
   version?: string;
   claudeFound?: boolean;
   claudePath?: string | null;
+  codexFound?: boolean;
+  codexPath?: string | null;
   error?: { code?: string; message?: string; detail?: string };
 }
 
@@ -29,6 +36,8 @@ const KNOWN_CODES: Code[] = [
   ErrorCode.BRIDGE_BUSY,
   ErrorCode.BRIDGE_CLI_NOT_FOUND,
   ErrorCode.BRIDGE_FAILED,
+  // Codex distinguishes "not signed in" from "out of quota"; both arrive here.
+  ErrorCode.PERMISSION_DENIED,
 ];
 
 function fromBridgeError(error: BridgeResponse['error']): AppError {
@@ -114,13 +123,15 @@ export async function getBridgeStatus(): Promise<BridgeStatus> {
       version: res.version,
       claudeFound: res.claudeFound,
       claudePath: res.claudePath,
+      codexFound: res.codexFound,
+      codexPath: res.codexPath,
     };
   } catch {
     return { installed: false };
   }
 }
 
-/** Claude Code takes one prompt, so the conversation is flattened into it. */
+/** Both CLIs take one prompt, so the conversation is flattened into it. */
 function flatten(messages: ChatMessage[]): { system: string; prompt: string } {
   const system = messages
     .filter((m) => m.role === 'system')
@@ -137,18 +148,40 @@ function flatten(messages: ChatMessage[]): { system: string; prompt: string } {
   return { system, prompt };
 }
 
-export function createClaudeCodeProvider(): LLMProvider {
+const CLI_META = {
+  claude: {
+    providerId: 'claude-code',
+    label: 'Claude Code',
+    command: 'claude',
+    install: 'Install Claude Code, or make sure `claude` is on your PATH, then try again.',
+  },
+  codex: {
+    providerId: 'codex-cli',
+    label: 'Codex',
+    command: 'codex',
+    install: 'Install the Codex CLI, or make sure `codex` is on your PATH, then try again.',
+  },
+} as const;
+
+/**
+ * One implementation for both local CLIs. They differ only in what the bridge
+ * runs — the extension side is identical, because the host normalizes both down
+ * to `{ text }` and both own their own model and output limit in headless mode.
+ */
+export function createLocalCliProvider(cli: LocalCli): LLMProvider {
+  const meta = CLI_META[cli];
+
   return {
-    id: 'claude-code',
+    id: meta.providerId,
 
     async complete(req: CompletionRequest): Promise<CompletionResponse> {
-      // maxTokens is intentionally unused: Claude Code owns the model and its
+      // maxTokens is intentionally unused: the CLI owns the model and its
       // output limit in headless mode.
       const { system, prompt } = flatten(req.messages);
-      const res = await callBridge({ type: 'complete', system, prompt });
+      const res = await callBridge({ type: 'complete', cli, system, prompt });
 
       if (typeof res.text !== 'string' || !res.text.trim()) {
-        throw appError(ErrorCode.BRIDGE_FAILED, 'Claude Code returned an empty response.');
+        throw appError(ErrorCode.BRIDGE_FAILED, `${meta.label} returned an empty response.`);
       }
       return { text: res.text, stopReason: res.stopReason };
     },
@@ -156,18 +189,26 @@ export function createClaudeCodeProvider(): LLMProvider {
     async test(): Promise<void> {
       const status = await getBridgeStatus();
       if (!status.installed) throw notInstalled();
-      if (!status.claudeFound) {
+
+      const found = cli === 'codex' ? status.codexFound : status.claudeFound;
+      if (!found) {
         throw appError(
           ErrorCode.BRIDGE_CLI_NOT_FOUND,
-          'The bridge is installed but cannot find the claude command.',
-          'Install Claude Code, or make sure `claude` is on your PATH, then try again.',
+          `The bridge is installed but cannot find the ${meta.command} command.`,
+          meta.install,
         );
       }
+
+      // A real completion, not just a discovery check: being signed out or out
+      // of quota only shows up when something is actually asked of it.
       await this.complete({
-        model: 'claude-code',
+        model: meta.providerId,
         maxTokens: 64,
         messages: [{ role: 'user', content: 'Reply with the single word: ok' }],
       });
     },
   };
 }
+
+export const createClaudeCodeProvider = () => createLocalCliProvider('claude');
+export const createCodexProvider = () => createLocalCliProvider('codex');

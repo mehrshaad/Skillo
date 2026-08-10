@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { ErrorCode } from '@/core/errors';
-import { createClaudeCodeProvider, getBridgeStatus } from '@/lib/providers/claudeCode';
+import {
+  createClaudeCodeProvider,
+  createCodexProvider,
+  getBridgeStatus,
+} from '@/lib/providers/claudeCode';
 
 type Listener = (msg: unknown) => void;
 
@@ -165,5 +169,86 @@ describe('getBridgeStatus', () => {
     stub.drop();
 
     expect(await pending).toEqual({ installed: false });
+  });
+});
+
+describe('Codex provider', () => {
+  it('routes to codex, so one bridge can serve both CLIs', async () => {
+    const stub = installPort();
+    const provider = createCodexProvider();
+
+    const pending = provider.complete({
+      model: 'codex-cli',
+      maxTokens: 100,
+      messages: [
+        { role: 'system', content: 'Be terse.' },
+        { role: 'user', content: 'Reply with ok.' },
+      ],
+    });
+
+    stub.reply({ ok: true, text: 'ok', stopReason: 'stop' });
+    expect((await pending).text).toBe('ok');
+
+    const sent = stub.sent()!;
+    expect(sent.cli).toBe('codex');
+    // The host folds system into the prompt, because Codex has no
+    // --system-prompt; the extension still sends them apart.
+    expect(sent.system).toBe('Be terse.');
+    expect(sent.prompt).toBe('Reply with ok.');
+  });
+
+  it('leaves Claude Code requests without a cli, so an older host still works', async () => {
+    const stub = installPort();
+    const pending = createClaudeCodeProvider().complete({
+      model: 'claude-code',
+      maxTokens: 10,
+      messages: [{ role: 'user', content: 'hi' }],
+    });
+    stub.reply({ ok: true, text: 'ok' });
+    await pending;
+
+    expect(stub.sent()!.cli).toBe('claude');
+  });
+
+  it('carries the signed-out code through instead of flattening it', async () => {
+    // Being signed out and being out of quota need different advice, so the
+    // host distinguishes them and the provider must not collapse that.
+    const stub = installPort();
+    const pending = createCodexProvider().complete({
+      model: 'codex-cli',
+      maxTokens: 10,
+      messages: [{ role: 'user', content: 'hi' }],
+    });
+
+    stub.reply({
+      ok: false,
+      error: {
+        code: 'PERMISSION_DENIED',
+        message: 'Codex is not signed in.',
+        detail: 'Run `codex logout` then `codex login`.',
+      },
+    });
+
+    await expect(pending).rejects.toMatchObject({
+      code: ErrorCode.PERMISSION_DENIED,
+      message: 'Codex is not signed in.',
+    });
+  });
+
+  it('reports each CLI separately, so one missing does not hide the other', async () => {
+    stubPermission(true);
+    const stub = installPort();
+
+    const pending = getBridgeStatus();
+    // The permission check resolves first, so the port is connected a tick later.
+    await vi.waitFor(() => expect(stub.port.postMessage).toHaveBeenCalled());
+    stub.reply({ ok: true, version: '0.1.0', claudeFound: false, codexFound: true, codexPath: '/x/codex' });
+
+    expect(await pending).toMatchObject({
+      installed: true,
+      claudeFound: false,
+      codexFound: true,
+      codexPath: '/x/codex',
+    });
   });
 });

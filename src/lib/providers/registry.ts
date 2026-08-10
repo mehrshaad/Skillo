@@ -6,7 +6,7 @@ import {
 } from '@/core/providers/registry';
 import type { ProviderId } from '@/core/providers/types';
 import { getSettings, type Settings } from '@/lib/storage';
-import { createClaudeCodeProvider } from './claudeCode';
+import { createClaudeCodeProvider, createCodexProvider } from './claudeCode';
 
 /**
  * The extension's half of provider resolution. Everything reached with a key
@@ -15,14 +15,22 @@ import { createClaudeCodeProvider } from './claudeCode';
  * extension has.
  */
 export function buildProvider(id: ProviderId, settings: Settings): ResolvedProvider {
-  if (id === 'claude-code') {
-    if (!settings.providers.claudeCode?.enabled) {
-      throw appError(ErrorCode.NO_PROVIDER, 'Turn on the Claude Code bridge in Settings first.');
+  // Local CLIs pick their own model; the id is only for display and history.
+  if (id === 'claude-code' || id === 'codex-cli') {
+    const enabled =
+      id === 'claude-code'
+        ? settings.providers.claudeCode?.enabled
+        : settings.providers.codexCli?.enabled;
+
+    if (!enabled) {
+      throw appError(
+        ErrorCode.NO_PROVIDER,
+        `Turn on the ${PROVIDER_META[id].label} bridge in Settings first.`,
+      );
     }
-    // Claude Code picks its own model; the label is only for display.
     return {
-      provider: createClaudeCodeProvider(),
-      model: 'claude-code',
+      provider: id === 'claude-code' ? createClaudeCodeProvider() : createCodexProvider(),
+      model: id,
       meta: PROVIDER_META[id],
     };
   }

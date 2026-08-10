@@ -48,6 +48,12 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     needsKey: false,
     local: true,
   },
+  'codex-cli': {
+    id: 'codex-cli',
+    label: 'Codex (local)',
+    needsKey: false,
+    local: true,
+  },
 };
 
 export interface ResolvedProvider {

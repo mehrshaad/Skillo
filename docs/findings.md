@@ -144,12 +144,30 @@ Non-interactive mode is `codex exec`. It differs from the Claude CLI in ways tha
 diagnostics on stderr, and the `-o` file is **never created**. So the bridge should treat
 "non-zero exit or missing output file" as the failure case rather than parsing stderr.
 
+**The two failure modes look identical to a caller and must not be conflated.** Both give
+exit 1, empty stdout and no output file; only the stderr wording separates them:
+
+- stale credentials — `Your access token could not be refreshed because your refresh token
+  was already used. Please log out and sign in again.` Fixed by `codex logout && codex login`.
+- quota exhausted — `You've hit your usage limit. Upgrade to Plus to continue using Codex
+  (…), or try again at <date>.` Nothing to fix; it is a wait or an upgrade.
+
+Telling the user to sign in again when they are actually out of quota sends them round a
+loop that cannot help, so the provider matches on the wording. Note stderr also echoes the
+prompt back as transcript output, so it is not purely diagnostics.
+
 **`codex login status` cannot be used as a readiness check.** It reported
 `Logged in using ChatGPT` while every request failed with
 `refresh token was already used`. Only a real call reveals a dead token.
 
-Still unverified, and must be before the provider ships: the exact content of the `-o` file on
-a **successful** call, whether it carries any preamble, and typical latency.
+Verified through the bridge end to end: `ping` finds both CLIs independently, `complete`
+with `cli: 'codex'` reaches the binary, and the quota failure comes back classified with the
+reset date. **Still unverified: the `-o` file on a successful call** — the account this was
+built on is out of free-tier quota. One good round-trip is owed before trusting the success
+path.
+
+Practical note: a three-pass generation is four Codex calls, and the free tier runs out
+fast. Codex is best treated as an occasional option rather than the default.
 
 ## Chrome and WXT
 

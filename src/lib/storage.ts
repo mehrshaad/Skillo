@@ -39,6 +39,7 @@ export interface Settings {
     anthropic?: ProviderConfig;
     huggingface?: ProviderConfig;
     claudeCode?: { enabled: boolean };
+    codexCli?: { enabled: boolean };
   };
 }
 
@@ -103,6 +104,7 @@ interface SyncedSettings {
   autoCompile?: boolean;
   models: Partial<Record<ProviderId, string>>;
   claudeCodeEnabled?: boolean;
+  codexCliEnabled?: boolean;
   defaults?: GenerationDefaults;
   ui?: UiPrefs;
 }
@@ -190,6 +192,7 @@ function splitSettings(settings: Settings): { synced: SyncedSettings; secrets: S
       autoCompile: settings.autoCompile,
       models,
       claudeCodeEnabled: settings.providers.claudeCode?.enabled,
+      codexCliEnabled: settings.providers.codexCli?.enabled,
       defaults: settings.defaults,
       ui: settings.ui,
     },
@@ -210,6 +213,7 @@ function composeSettings(
   }
 
   if (synced?.claudeCodeEnabled) providers.claudeCode = { enabled: true };
+  if (synced?.codexCliEnabled) providers.codexCli = { enabled: true };
 
   return {
     activeProviderId: synced?.activeProviderId ?? null,

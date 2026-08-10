@@ -4,6 +4,7 @@ export const PROVIDER_IDS = [
   'anthropic',
   'huggingface',
   'claude-code',
+  'codex-cli',
 ] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 

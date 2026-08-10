@@ -78,10 +78,14 @@ export function Settings({ onClose }: { onClose: () => void }) {
         <SectionHeader>Model provider</SectionHeader>
         <div className="grid grid-cols-2 gap-1.5">
           {PROVIDER_IDS.map((id) => {
+            // Narrowed by id rather than by meta.local, so the keyed branch
+            // still typechecks against the providers map.
             const configured =
               id === 'claude-code'
-                ? settings.providers.claudeCode?.enabled
-                : Boolean(settings.providers[id]?.apiKey);
+                ? Boolean(settings.providers.claudeCode?.enabled)
+                : id === 'codex-cli'
+                  ? Boolean(settings.providers.codexCli?.enabled)
+                  : Boolean(settings.providers[id]?.apiKey);
             return (
               <button
                 key={id}
@@ -100,11 +104,13 @@ export function Settings({ onClose }: { onClose: () => void }) {
         </div>
       </section>
 
-      {selected === 'claude-code' ? (
-        <ClaudeCodeForm
+      {selected === 'claude-code' || selected === 'codex-cli' ? (
+        <LocalCliForm
+          key={selected}
+          cli={selected}
           settings={settings}
           onSave={update}
-          isActive={settings.activeProviderId === 'claude-code'}
+          isActive={settings.activeProviderId === selected}
         />
       ) : (
         <ProviderForm
@@ -136,15 +142,25 @@ export function Settings({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ClaudeCodeForm({
+/**
+ * One form for both local CLIs. They install through the same bridge and differ
+ * only in which command it looks for, so splitting them would duplicate the
+ * whole setup flow to change two strings.
+ */
+function LocalCliForm({
+  cli,
   settings,
   onSave,
   isActive,
 }: {
+  cli: 'claude-code' | 'codex-cli';
   settings: SettingsData;
   onSave: (patch: Partial<SettingsData>) => Promise<void>;
   isActive: boolean;
 }) {
+  const isCodex = cli === 'codex-cli';
+  const label = PROVIDER_META[cli].label.replace(' (local)', '');
+  const command = isCodex ? 'codex' : 'claude';
   const [status, setStatus] = useState<BridgeStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
@@ -153,7 +169,7 @@ function ClaudeCodeForm({
   const onWindows = /win/i.test(navigator.userAgent);
   const installer = onWindows ? INSTALLERS.windows : INSTALLERS.posix;
   const other = onWindows ? INSTALLERS.posix : INSTALLERS.windows;
-  const ready = status?.installed && status.claudeFound;
+  const ready = status?.installed && (isCodex ? status.codexFound : status.claudeFound);
 
   const refresh = async () => {
     const res = await sendMessage({ type: 'bridge/status' });
@@ -195,8 +211,9 @@ function ClaudeCodeForm({
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted">
-        Runs Skillo's prompts through the Claude Code already installed on this machine, using
-        your existing login. No API key, and nothing goes to a third-party provider.
+        Runs Skillo's prompts through the {label} already installed on this machine, using your
+        existing login. No API key, and nothing goes to a third-party provider.
+        {isCodex && ' Codex counts against your ChatGPT plan, and the free tier runs out quickly on a three-pass run.'}
       </p>
 
       <section className="space-y-1.5">
@@ -205,12 +222,12 @@ function ClaudeCodeForm({
           <div className="flex flex-wrap items-center gap-1">
             <Chip tone="proof">connected</Chip>
             <Chip>host {status.version}</Chip>
-            <Chip>claude found</Chip>
+            <Chip>{command} found</Chip>
           </div>
         ) : status?.installed ? (
           <Note>
-            The bridge is running, but it cannot find the <code>claude</code> command. Install
-            Claude Code, or make sure <code>claude</code> is on your PATH.
+            The bridge is running, but it cannot find the <code>{command}</code> command. Install
+            {' '}{label}, or make sure <code>{command}</code> is on your PATH.
           </Note>
         ) : (
           <SetupSteps
@@ -252,12 +269,15 @@ function ClaudeCodeForm({
         disabled={!ready || isActive}
         onClick={() =>
           void onSave({
-            activeProviderId: 'claude-code',
-            providers: { ...settings.providers, claudeCode: { enabled: true } },
+            activeProviderId: cli,
+            providers: {
+              ...settings.providers,
+              ...(isCodex ? { codexCli: { enabled: true } } : { claudeCode: { enabled: true } }),
+            },
           })
         }
       >
-        <SwapText>{isActive ? 'Claude Code is active' : 'Use Claude Code'}</SwapText>
+        <SwapText>{isActive ? `${label} is active` : `Use ${label}`}</SwapText>
       </Button>
     </div>
   );
@@ -326,7 +346,7 @@ function ProviderForm({
   onSave,
   isActive,
 }: {
-  providerId: Exclude<ProviderId, 'claude-code'>;
+  providerId: Exclude<ProviderId, 'claude-code' | 'codex-cli'>;
   settings: SettingsData;
   onSave: (patch: Partial<SettingsData>) => Promise<void>;
   isActive: boolean;
